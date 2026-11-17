@@ -1,0 +1,1399 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>מלל — מתמונה לטקסט</title>
+<meta name="description" content="מלל: אתר פשוט ומהיר שממיר תמונות לטקסט בעברית ובאנגלית, ישירות בדפדפן. עריכה, מחיקה, חיפוש וייצוא בקליק.">
+<meta name="theme-color" content="#f6f7fb">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%236366f1'/%3E%3Ctext x='32' y='44' font-size='34' font-family='Arial' font-weight='bold' text-anchor='middle' fill='white'%3E%D7%9E%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --brand1:#6366f1; --brand2:#a855f7; --brand3:#ec4899;
+  --bg:#f5f6fb; --bg2:#eef0f8;
+  --panel:#ffffff; --panel-soft:#fafbff;
+  --ink:#14161f; --ink-soft:#3d4254; --muted:#6b7185;
+  --line:rgba(20,22,31,.09); --line-strong:rgba(20,22,31,.16);
+  --shadow:0 18px 45px -24px rgba(24,28,70,.35), 0 2px 8px -4px rgba(24,28,70,.12);
+  --shadow-lg:0 40px 90px -40px rgba(24,28,70,.5);
+  --ok:#10b981; --warn:#f59e0b; --bad:#ef4444;
+  --radius:22px;
+}
+[data-theme="dark"]{
+  --bg:#0a0c13; --bg2:#0e1120;
+  --panel:#141826; --panel-soft:#171c2c;
+  --ink:#eef1fa; --ink-soft:#c7ccdd; --muted:#98a0b8;
+  --line:rgba(255,255,255,.09); --line-strong:rgba(255,255,255,.18);
+  --shadow:0 18px 45px -24px rgba(0,0,0,.8), 0 2px 8px -4px rgba(0,0,0,.5);
+  --shadow-lg:0 40px 90px -40px rgba(0,0,0,.9);
+}
+*{box-sizing:border-box}
+[hidden]{display:none !important}
+html,body{margin:0;padding:0}
+body{
+  font-family:'Heebo',ui-sans-serif,system-ui,-apple-system,'Segoe UI',Arial,sans-serif;
+  background:var(--bg); color:var(--ink);
+  min-height:100vh; line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+  transition:background .35s ease,color .35s ease;
+  overflow-x:hidden;
+}
+button,input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
+button{cursor:pointer;border:none;background:none}
+:focus-visible{outline:2px solid var(--brand1);outline-offset:2px}
+a{color:var(--brand1)}
+
+/* ---------- background ---------- */
+.orbs{position:fixed;inset:0;z-index:-1;overflow:hidden;pointer-events:none}
+.orb{position:absolute;border-radius:50%;filter:blur(80px);opacity:.55}
+.orb.a{width:52vw;height:52vw;background:radial-gradient(circle at 30% 30%,#a5b4fc,#6366f1 60%,transparent 70%);top:-18vw;right:-10vw}
+.orb.b{width:44vw;height:44vw;background:radial-gradient(circle at 60% 40%,#f9a8d4,#ec4899 60%,transparent 72%);bottom:-16vw;left:-12vw;opacity:.34}
+.orb.c{width:36vw;height:36vw;background:radial-gradient(circle at 50% 50%,#7dd3fc,#0ea5e9 60%,transparent 72%);top:36vh;left:30vw;opacity:.22}
+[data-theme="dark"] .orb{opacity:.3}
+[data-theme="dark"] .orb.b{opacity:.22}
+
+/* ---------- shell ---------- */
+.wrap{max-width:1180px;margin:0 auto;padding:0 20px}
+.topbar{
+  position:sticky;top:0;z-index:40;backdrop-filter:blur(18px) saturate(1.4);
+  background:color-mix(in srgb,var(--bg) 78%,transparent);
+  border-bottom:1px solid var(--line);
+}
+.topbar-in{display:flex;align-items:center;gap:14px;height:66px}
+.brand{display:flex;align-items:center;gap:12px;min-width:0}
+.logo{
+  width:40px;height:40px;border-radius:13px;display:grid;place-items:center;
+  background:linear-gradient(135deg,var(--brand1),var(--brand2) 55%,var(--brand3));
+  color:#fff;font-weight:800;font-size:20px;box-shadow:0 10px 24px -10px rgba(99,102,241,.9);
+  flex:0 0 auto;
+}
+.brand-text{display:flex;flex-direction:column;line-height:1.15;min-width:0}
+.brand-text b{font-size:19px;font-weight:800;letter-spacing:-.02em}
+.brand-text span{font-size:12.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.top-actions{margin-inline-start:auto;display:flex;align-items:center;gap:8px}
+.icon-btn{
+  width:40px;height:40px;border-radius:12px;display:grid;place-items:center;
+  border:1px solid var(--line);background:var(--panel);color:var(--ink-soft);
+  transition:transform .18s ease,border-color .18s ease,color .18s ease;
+  font-size:17px;
+}
+.icon-btn:hover{transform:translateY(-1px);border-color:var(--line-strong);color:var(--ink)}
+.engine-chip{
+  display:inline-flex;align-items:center;gap:7px;font-size:12.5px;color:var(--muted);
+  border:1px solid var(--line);border-radius:999px;padding:6px 12px;background:var(--panel);
+  white-space:nowrap;
+}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--muted);flex:0 0 auto}
+.dot.busy{background:var(--warn);animation:blink 1s infinite}
+.dot.ready{background:var(--ok)}
+.dot.err{background:var(--bad)}
+@keyframes blink{50%{opacity:.25}}
+
+/* ---------- hero ---------- */
+.hero{padding:44px 0 8px;text-align:center}
+.pill{
+  display:inline-flex;align-items:center;gap:8px;padding:7px 14px;border-radius:999px;
+  background:color-mix(in srgb,var(--brand1) 10%,transparent);
+  color:var(--brand1);font-size:12.5px;font-weight:600;border:1px solid color-mix(in srgb,var(--brand1) 22%,transparent);
+  margin-bottom:16px;
+}
+h1{
+  font-size:clamp(30px,5.2vw,50px);line-height:1.12;margin:0 0 14px;letter-spacing:-.03em;font-weight:800;
+}
+h1 .grad{
+  background:linear-gradient(120deg,var(--brand1),var(--brand2) 42%,var(--brand3));
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+}
+.lede{max-width:620px;margin:0 auto 30px;color:var(--muted);font-size:clamp(14.5px,1.6vw,17px)}
+
+/* ---------- dropzone ---------- */
+.dropzone{
+  position:relative;max-width:820px;margin:0 auto;padding:38px 22px 30px;
+  border-radius:26px;border:2px dashed var(--line-strong);
+  background:color-mix(in srgb,var(--panel) 72%,transparent);
+  box-shadow:var(--shadow);transition:.25s ease;
+}
+.dropzone::before{
+  content:"";position:absolute;inset:0;border-radius:26px;opacity:0;transition:.3s;
+  background:radial-gradient(600px 220px at 50% 0%,color-mix(in srgb,var(--brand1) 16%,transparent),transparent 70%);
+  pointer-events:none;
+}
+.dropzone:hover::before,.dropzone.over::before{opacity:1}
+.dropzone.over{border-color:var(--brand1);transform:translateY(-2px);box-shadow:0 30px 60px -30px color-mix(in srgb,var(--brand1) 60%,transparent)}
+.dz-icon{
+  width:66px;height:66px;margin:0 auto 14px;border-radius:20px;display:grid;place-items:center;
+  background:linear-gradient(135deg,color-mix(in srgb,var(--brand1) 18%,transparent),color-mix(in srgb,var(--brand3) 16%,transparent));
+  color:var(--brand1);font-size:29px;
+}
+.dropzone.over .dz-icon{transform:scale(1.06)}
+.dz-title{font-size:19px;font-weight:700;margin:0 0 4px}
+.dz-sub{margin:0;color:var(--muted);font-size:13.5px}
+.dz-buttons{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:16px}
+.dz-note{margin:16px 0 0;font-size:12px;color:var(--muted);opacity:.9}
+
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  border-radius:13px;padding:11px 18px;font-weight:600;font-size:14px;
+  border:1px solid transparent;transition:transform .16s ease,box-shadow .2s ease,background .2s ease,border-color .2s ease;
+  white-space:nowrap;
+}
+.btn:hover{transform:translateY(-1px)}
+.btn:active{transform:translateY(0) scale(.99)}
+.btn.primary{
+  background:linear-gradient(135deg,var(--brand1),var(--brand2));
+  color:#fff;box-shadow:0 14px 30px -14px color-mix(in srgb,var(--brand1) 85%,transparent);
+}
+.btn.ghost{background:var(--panel);border-color:var(--line);color:var(--ink-soft)}
+.btn.ghost:hover{border-color:var(--line-strong);color:var(--ink)}
+.btn.soft{background:color-mix(in srgb,var(--brand1) 10%,transparent);color:var(--brand1);border-color:color-mix(in srgb,var(--brand1) 20%,transparent)}
+.btn.small{padding:8px 12px;font-size:13px;border-radius:11px}
+.btn.danger{color:var(--bad);border-color:color-mix(in srgb,var(--bad) 25%,transparent);background:color-mix(in srgb,var(--bad) 8%,transparent)}
+
+/* ---------- settings ---------- */
+.settings{max-width:820px;margin:18px auto 0;display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:center}
+.field{
+  display:inline-flex;align-items:center;gap:8px;padding:7px 12px;border-radius:12px;
+  border:1px solid var(--line);background:var(--panel);font-size:13px;color:var(--ink-soft);
+}
+.field select{border:none;background:transparent;font-size:13px;font-weight:600;outline:none;padding:2px 0;cursor:pointer;color:var(--ink)}
+.switch{display:inline-flex;align-items:center;gap:9px;padding:7px 12px;border-radius:12px;border:1px solid var(--line);background:var(--panel);font-size:13px;color:var(--ink-soft);cursor:pointer;user-select:none}
+.switch input{position:absolute;opacity:0;width:0;height:0}
+.switch .track{width:34px;height:19px;border-radius:999px;background:var(--line-strong);position:relative;transition:.2s;flex:0 0 auto}
+.switch .track::after{content:"";position:absolute;top:2px;right:2px;width:15px;height:15px;border-radius:50%;background:#fff;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.25)}
+.switch input:checked + .track{background:linear-gradient(135deg,var(--brand1),var(--brand2))}
+.switch input:checked + .track::after{transform:translateX(-15px)}
+.hint-inline{font-size:12px;color:var(--muted)}
+
+/* ---------- toolbar ---------- */
+.toolbar{margin:26px auto 0;display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between}
+.search{
+  position:relative;flex:1 1 260px;max-width:420px;
+}
+.search input{
+  width:100%;padding:11px 40px 11px 14px;border-radius:13px;border:1px solid var(--line);
+  background:var(--panel);font-size:14px;outline:none;transition:.2s;
+}
+.search input:focus{border-color:color-mix(in srgb,var(--brand1) 55%,transparent);box-shadow:0 0 0 4px color-mix(in srgb,var(--brand1) 12%,transparent)}
+.search .mag{position:absolute;inset-inline-end:13px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:15px;pointer-events:none}
+.search .clear{position:absolute;inset-inline-start:8px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:16px;width:26px;height:26px;border-radius:8px;display:grid;place-items:center}
+.search .clear:hover{background:var(--bg2);color:var(--ink)}
+.tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.count-chip{font-size:12.5px;color:var(--muted);padding:6px 10px;border-radius:999px;border:1px dashed var(--line-strong)}
+
+/* dropdown */
+.dd{position:relative}
+.dd-panel{
+  position:absolute;top:calc(100% + 8px);inset-inline-start:0;min-width:210px;z-index:30;
+  background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:7px;
+  box-shadow:var(--shadow-lg);animation:pop .16s ease;
+}
+.dd-panel button{display:flex;align-items:center;gap:10px;width:100%;text-align:start;padding:10px 12px;border-radius:10px;font-size:13.5px;color:var(--ink-soft)}
+.dd-panel button:hover{background:var(--panel-soft);color:var(--ink)}
+@keyframes pop{from{opacity:0;transform:translateY(-6px)}}
+
+/* ---------- workspace ---------- */
+.workspace{display:grid;grid-template-columns:minmax(0,1fr) 292px;gap:22px;margin:22px 0 60px;align-items:start}
+.list{display:flex;flex-direction:column;gap:16px;min-width:0}
+
+.card{
+  border:1px solid var(--line);border-radius:var(--radius);background:var(--panel);
+  box-shadow:var(--shadow);padding:16px;display:grid;grid-template-columns:104px minmax(0,1fr);gap:16px;
+  animation:rise .34s ease both;position:relative;overflow:hidden;
+}
+@keyframes rise{from{opacity:0;transform:translateY(12px)}}
+.card::after{
+  content:"";position:absolute;inset-inline-start:0;top:0;height:100%;width:3px;
+  background:linear-gradient(180deg,var(--brand1),var(--brand2));opacity:0;transition:.25s;
+}
+.card:hover::after{opacity:1}
+.card.editing{grid-template-columns:1fr}
+.card.editing .thumb{display:none}
+
+.thumb{position:relative;border-radius:14px;overflow:hidden;background:var(--bg2);align-self:start;aspect-ratio:3/4}
+.thumb img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .4s ease}
+.thumb:hover img{transform:scale(1.05)}
+.thumb .open{position:absolute;inset:0;display:grid;place-items:center;background:linear-gradient(0deg,rgba(10,12,20,.55),rgba(10,12,20,0) 60%);color:#fff;font-size:19px;opacity:0;transition:.25s}
+.thumb:hover .open{opacity:1}
+.thumb .badge{
+  position:absolute;top:7px;inset-inline-start:7px;font-size:10.5px;font-weight:700;padding:3px 7px;border-radius:7px;
+  background:rgba(10,12,20,.62);color:#fff;backdrop-filter:blur(6px);
+}
+.thumb .badge.busy{background:rgba(245,158,11,.92)}
+.thumb .badge.done{background:rgba(16,185,129,.92)}
+.thumb .badge.err{background:rgba(239,68,68,.92)}
+
+.body{min-width:0;display:flex;flex-direction:column;gap:10px}
+.card-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.doc-name{
+  flex:1 1 160px;min-width:0;border:1px solid transparent;background:transparent;border-radius:9px;
+  padding:5px 8px;font-weight:700;font-size:15.5px;color:var(--ink);text-overflow:ellipsis;
+  transition:.18s;
+}
+.doc-name:hover{border-color:var(--line);background:var(--panel-soft)}
+.doc-name:focus{outline:none;border-color:color-mix(in srgb,var(--brand1) 45%,transparent);background:var(--panel-soft);box-shadow:0 0 0 3px color-mix(in srgb,var(--brand1) 10%,transparent)}
+.meta{display:flex;gap:6px;flex-wrap:wrap;font-size:11.5px;color:var(--muted)}
+.chip{padding:3px 9px;border-radius:999px;background:var(--bg2);white-space:nowrap}
+.card-actions{display:flex;gap:4px;align-items:center;margin-inline-start:auto}
+.act{
+  font-size:12.5px;padding:6px 10px;border-radius:9px;color:var(--ink-soft);border:1px solid transparent;
+  transition:.16s;white-space:nowrap;
+}
+.act:hover{background:var(--panel-soft);border-color:var(--line);color:var(--ink)}
+.act.danger:hover{color:var(--bad);border-color:color-mix(in srgb,var(--bad) 25%,transparent);background:color-mix(in srgb,var(--bad) 8%,transparent)}
+.act.icon{width:32px;padding:6px 0;display:grid;place-items:center;font-size:16px}
+
+.text-view{
+  font-size:var(--read-size,17px);line-height:1.75;color:var(--ink-soft);
+  white-space:pre-wrap;word-break:break-word;max-height:340px;overflow:auto;
+  padding:2px 4px;border-radius:10px;cursor:text;
+}
+.text-view[dir="rtl"]{text-align:right}
+.text-view[dir="ltr"]{text-align:left}
+.text-view:empty::before{content:"אין טקסט עדיין";color:var(--muted)}
+.text-view mark{background:color-mix(in srgb,var(--warn) 40%,transparent);color:inherit;border-radius:4px;padding:0 2px}
+.text-view::-webkit-scrollbar{width:9px}
+.text-view::-webkit-scrollbar-thumb{background:var(--line-strong);border-radius:99px}
+
+textarea.editor{
+  width:100%;border:1px solid color-mix(in srgb,var(--brand1) 35%,transparent);border-radius:14px;
+  padding:14px;font-size:var(--read-size,17px);line-height:1.75;min-height:180px;resize:vertical;
+  background:var(--panel-soft);color:var(--ink);outline:none;
+  box-shadow:0 0 0 4px color-mix(in srgb,var(--brand1) 8%,transparent);
+}
+.edit-bar{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.edit-bar .spacer{flex:1}
+
+.progress{margin-top:2px}
+.bar{height:7px;border-radius:99px;background:var(--bg2);overflow:hidden}
+.bar i{display:block;height:100%;width:0;border-radius:99px;background:linear-gradient(90deg,var(--brand1),var(--brand2),var(--brand3));transition:width .3s ease}
+.progress .lbl{font-size:12px;color:var(--muted);margin-top:6px}
+
+.error-box{
+  border:1px solid color-mix(in srgb,var(--bad) 30%,transparent);background:color-mix(in srgb,var(--bad) 7%,transparent);
+  color:var(--bad);padding:10px 12px;border-radius:12px;font-size:13px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;
+}
+.skeleton{display:flex;flex-direction:column;gap:8px}
+.skeleton i{display:block;height:11px;border-radius:6px;background:linear-gradient(90deg,var(--bg2),var(--line),var(--bg2));background-size:200% 100%;animation:shimmer 1.4s infinite}
+.skeleton i:nth-child(2){width:92%}.skeleton i:nth-child(3){width:78%}
+@keyframes shimmer{to{background-position:-200% 0}}
+
+/* dropdown inside card */
+.menu{position:relative;margin-inline-start:2px}
+.menu summary{list-style:none;cursor:pointer}
+.menu summary::-webkit-details-marker{display:none}
+.menu[open] summary{background:var(--panel-soft);border-color:var(--line)}
+.menu-panel{
+  position:absolute;top:calc(100% + 6px);inset-inline-start:0;z-index:20;min-width:196px;
+  background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:6px;
+  box-shadow:var(--shadow-lg);animation:pop .15s ease;
+}
+.menu-panel button{display:flex;align-items:center;gap:9px;width:100%;padding:9px 11px;border-radius:9px;font-size:13px;color:var(--ink-soft);text-align:start}
+.menu-panel button:hover{background:var(--panel-soft);color:var(--ink)}
+.menu-panel hr{border:none;border-top:1px solid var(--line);margin:5px 2px}
+
+/* ---------- aside ---------- */
+.aside{display:flex;flex-direction:column;gap:14px;position:sticky;top:84px}
+.panel{border:1px solid var(--line);border-radius:18px;background:var(--panel);box-shadow:var(--shadow);padding:16px}
+.panel h3{margin:0 0 12px;font-size:13px;letter-spacing:.02em;color:var(--muted);font-weight:700;text-transform:uppercase}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.stat{background:var(--panel-soft);border-radius:13px;padding:11px 12px;border:1px solid var(--line)}
+.stat b{display:block;font-size:21px;line-height:1.2;font-weight:800;letter-spacing:-.02em}
+.stat span{font-size:11.5px;color:var(--muted)}
+.side-actions{display:flex;flex-direction:column;gap:8px}
+.side-actions .btn{width:100%;justify-content:flex-start}
+.tips{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:9px;font-size:12.6px;color:var(--muted);line-height:1.55}
+.tips li{display:flex;gap:8px}
+.tips li::before{content:"•";color:var(--brand1);font-weight:800}
+
+/* ---------- empty / features ---------- */
+.features{max-width:1080px;margin:34px auto 70px;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+.feature{
+  border:1px solid var(--line);border-radius:18px;background:color-mix(in srgb,var(--panel) 80%,transparent);
+  padding:18px;transition:.22s;box-shadow:var(--shadow);
+}
+.feature:hover{transform:translateY(-3px);border-color:var(--line-strong)}
+.feature .fi{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;font-size:19px;margin-bottom:11px;background:color-mix(in srgb,var(--brand1) 11%,transparent);color:var(--brand1)}
+.feature h4{margin:0 0 4px;font-size:14.5px}
+.feature p{margin:0;font-size:12.8px;color:var(--muted);line-height:1.6}
+
+footer{border-top:1px solid var(--line);padding:22px 0 34px;color:var(--muted);font-size:12.6px;text-align:center}
+footer b{color:var(--ink-soft)}
+
+/* ---------- overlays ---------- */
+.overlay{
+  position:fixed;inset:0;z-index:90;background:rgba(8,10,18,.62);backdrop-filter:blur(6px);
+  display:grid;place-items:center;padding:20px;animation:fade .2s ease;
+}
+@keyframes fade{from{opacity:0}}
+.sheet{
+  background:var(--panel);border-radius:22px;max-width:560px;width:100%;padding:24px;
+  box-shadow:var(--shadow-lg);border:1px solid var(--line);max-height:88vh;overflow:auto;animation:rise .24s ease both;
+}
+.sheet-head{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.sheet-head h3{margin:0;font-size:18px}
+.sheet-head .icon-btn{margin-inline-start:auto;width:34px;height:34px}
+.kbd-table{width:100%;border-collapse:collapse;font-size:13.2px}
+.kbd-table td{padding:8px 4px;border-bottom:1px solid var(--line);color:var(--ink-soft)}
+.kbd-table td:first-child{width:132px;color:var(--muted)}
+kbd{
+  font-family:inherit;font-size:11.5px;background:var(--bg2);border:1px solid var(--line-strong);
+  border-bottom-width:2px;border-radius:6px;padding:2px 6px;color:var(--ink-soft);white-space:nowrap;
+}
+.viewer{position:relative;max-width:min(1000px,96vw);max-height:92vh;display:flex;flex-direction:column;gap:12px}
+.viewer .stage{
+  background:#0a0c13;border-radius:18px;overflow:auto;display:grid;place-items:center;min-height:200px;
+  max-height:76vh;padding:8px;box-shadow:var(--shadow-lg);
+}
+.viewer img{max-width:100%;max-height:72vh;border-radius:10px;transform-origin:center;transition:transform .2s ease}
+.viewer .vbar{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.viewer .vbar .btn{background:rgba(255,255,255,.94);color:#14161f;border-color:transparent;backdrop-filter:blur(8px)}
+.viewer .vbar .btn:hover{background:#fff}
+.viewer .close-v{position:absolute;top:-6px;inset-inline-start:-6px;background:rgba(255,255,255,.94);color:#14161f;border-radius:50%;width:38px;height:38px;z-index:2}
+
+/* ---------- toasts ---------- */
+.toasts{position:fixed;bottom:22px;inset-inline-start:50%;transform:translateX(-50%);z-index:120;display:flex;flex-direction:column;gap:9px;align-items:center;width:min(92vw,440px);pointer-events:none}
+.toast{
+  pointer-events:auto;display:flex;align-items:center;gap:12px;width:100%;
+  background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:11px 14px;
+  box-shadow:var(--shadow-lg);font-size:13.4px;animation:toastIn .24s ease both;
+}
+.toast.out{animation:toastOut .2s ease forwards}
+.toast b{font-weight:700}
+.toast .undo{margin-inline-start:auto;color:var(--brand1);font-weight:700;font-size:13px;padding:4px 8px;border-radius:8px}
+.toast .undo:hover{background:color-mix(in srgb,var(--brand1) 10%,transparent)}
+@keyframes toastIn{from{opacity:0;transform:translateY(14px)}}
+@keyframes toastOut{to{opacity:0;transform:translateY(10px)}}
+.spinner{width:15px;height:15px;border-radius:50%;border:2px solid var(--line-strong);border-top-color:var(--brand1);animation:spin .8s linear infinite;flex:0 0 auto}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ---------- responsive ---------- */
+@media (max-width:960px){
+  .workspace{grid-template-columns:1fr}
+  .aside{position:static;order:2;display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .aside .panel:last-child{grid-column:1/-1}
+}
+@media (max-width:640px){
+  .wrap{padding:0 14px}
+  .hero{padding:26px 0 4px}
+  .dropzone{padding:28px 14px 22px}
+  .card{grid-template-columns:1fr;padding:14px}
+  .thumb{aspect-ratio:16/9;max-height:190px}
+  .card-actions{width:100%;margin-inline-start:0;flex-wrap:wrap}
+  .aside{grid-template-columns:1fr}
+  .topbar-in{height:60px}
+  .brand-text span{display:none}
+  .engine-chip{display:none}
+  .toolbar{margin-top:18px}
+  .search{max-width:none}
+  .text-view{max-height:none}
+}
+
+/* ---------- print ---------- */
+@media print{
+  .topbar,.hero,.toolbar,.aside,.features,footer,.toasts,.card-actions,.thumb .badge,.progress,.overlay,.menu,.edit-bar{display:none !important}
+  body{background:#fff;color:#000}
+  .orbs{display:none}
+  .workspace{display:block;margin:0}
+  .card{border:none;box-shadow:none;padding:0 0 18px;grid-template-columns:1fr;break-inside:avoid;page-break-inside:avoid}
+  .thumb{display:none}
+  .card::after{display:none}
+  .doc-name{border:none;padding:0;font-size:16px;font-weight:800}
+  .text-view{max-height:none;overflow:visible;font-size:12pt;color:#000;white-space:pre-wrap}
+  .chip{background:none;border:1px solid #ddd;color:#555}
+  @page{margin:16mm}
+}
+</style>
+</head>
+<body>
+<div class="orbs" aria-hidden="true"><div class="orb a"></div><div class="orb b"></div><div class="orb c"></div></div>
+
+<header class="topbar">
+  <div class="wrap topbar-in">
+    <div class="brand">
+      <div class="logo">מ</div>
+      <div class="brand-text">
+        <b>מלל</b>
+        <span>מתמונה לטקסט · עברית ואנגלית</span>
+      </div>
+    </div>
+    <div class="top-actions">
+      <span class="engine-chip" id="engineChip"><span class="dot" id="engineDot"></span><span id="engineText">המנוע ייטען בתמלול הראשון</span></span>
+      <button class="icon-btn" id="btnTheme" title="מצב כהה / בהיר" aria-label="מצב כהה או בהיר">🌙</button>
+      <button class="icon-btn" id="btnHelp" title="עזרה וקיצורי מקלדת" aria-label="עזרה">?</button>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="hero">
+    <div class="pill">✨ הכול רץ בדפדפן — התמונות לא נשלחות לשום שרת</div>
+    <h1>תמונה אחת. <span class="grad">כל הטקסט.</span></h1>
+    <p class="lede">העלו צילום, סריקה או צילום מסך — ותקבלו טקסט שאפשר לערוך, למחוק, לחפש ולייצא בקליק. בלי התקנות ובלי הרשמה.</p>
+
+    <div class="dropzone" id="dropzone">
+      <div class="dz-icon">🖼️</div>
+      <p class="dz-title">גררו תמונות לכאן</p>
+      <p class="dz-sub">או בחרו קובץ, צלמו, או הדביקו צילום מסך</p>
+      <div class="dz-buttons">
+        <button class="btn primary" id="btnPick">בחירת קבצים</button>
+        <button class="btn ghost" id="btnCamera">📷 צילום במצלמה</button>
+        <button class="btn ghost" id="btnPaste">📋 הדבקה</button>
+      </div>
+      <p class="dz-note">PNG · JPG · WEBP · BMP — אפשר לבחור כמה תמונות יחד</p>
+    </div>
+
+    <div class="settings">
+      <label class="field">שפת התמלול
+        <select id="langSel" aria-label="שפת התמלול">
+          <option value="heb+eng" selected>עברית + אנגלית</option>
+          <option value="heb">עברית</option>
+          <option value="eng">אנגלית</option>
+          <option value="ara">ערבית</option>
+          <option value="rus">רוסית</option>
+          <option value="fra">צרפתית</option>
+          <option value="spa">ספרדית</option>
+        </select>
+      </label>
+      <label class="switch" title="הגברת ניגודיות והגדלה לפני הזיהוי — משפר תמונות כהות או מטושטשות">
+        <input type="checkbox" id="prepChk" checked>
+        <span class="track"></span>
+        שיפור איכות לפני תמלול
+      </label>
+      <span class="hint-inline" id="queueHint"></span>
+    </div>
+  </section>
+
+  <section class="toolbar" id="toolbar" hidden>
+    <div class="search">
+      <input type="search" id="searchInput" placeholder="חיפוש בטקסט ובשמות הקבצים…" aria-label="חיפוש">
+      <span class="mag">🔍</span>
+      <button class="clear" id="searchClear" hidden title="ניקוי חיפוש" aria-label="ניקוי חיפוש">✕</button>
+    </div>
+    <div class="tools">
+      <span class="count-chip" id="countChip">0 מסמכים</span>
+      <button class="btn ghost small" id="btnFontDown" title="הקטנת טקסט">A−</button>
+      <button class="btn ghost small" id="btnFontUp" title="הגדלת טקסט">A+</button>
+      <button class="btn ghost small" id="btnCopyAll">העתקת הכול</button>
+      <div class="dd">
+        <button class="btn ghost small" id="btnExport" aria-haspopup="true">⤓ ייצוא</button>
+        <div class="dd-panel" id="exportPanel" hidden>
+          <button data-export="txt">📄 קובץ טקסט (TXT)</button>
+          <button data-export="md">📝 Markdown</button>
+          <button data-export="json">🗂️ גיבוי מלא (JSON)</button>
+          <button data-export="csv">📊 טבלה (CSV)</button>
+          <button data-export="print">🖨️ הדפסה / PDF</button>
+          <button data-export="share">🔗 שיתוף</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="workspace" id="workspace" hidden>
+    <div class="list" id="list" aria-live="polite"></div>
+    <aside class="aside">
+      <div class="panel">
+        <h3>סיכום</h3>
+        <div class="stats">
+          <div class="stat"><b id="stDocs">0</b><span>מסמכים</span></div>
+          <div class="stat"><b id="stWords">0</b><span>מילים</span></div>
+          <div class="stat"><b id="stChars">0</b><span>תווים</span></div>
+          <div class="stat"><b id="stTime">0s</b><span>זמן עיבוד</span></div>
+        </div>
+      </div>
+      <div class="panel">
+        <h3>פעולות מהירות</h3>
+        <div class="side-actions">
+          <button class="btn soft small" id="btnAddMore">＋ הוספת תמונות</button>
+          <button class="btn ghost small" id="btnCopyAll2">📋 העתקת כל הטקסט</button>
+          <button class="btn ghost small" id="btnTxt">⤓ הורדת הכול כ־TXT</button>
+          <button class="btn ghost small" id="btnPrint2">🖨️ הדפסה / PDF</button>
+          <button class="btn danger small" id="btnClearAll">🗑️ ניקוי הכול</button>
+        </div>
+      </div>
+      <div class="panel">
+        <h3>טיפים לתמלול מדויק</h3>
+        <ul class="tips">
+          <li>תמונה חדה, ישרה וללא הצללות — התוצאה הטובה ביותר.</li>
+          <li>אפשר להדביק צילום מסך עם <kbd>Ctrl</kbd>+<kbd>V</kbd> בלי לשמור קובץ.</li>
+          <li>אם הטקסט יצא משובש, סמנו "שיפור איכות" ותמללו מחדש.</li>
+          <li>הטקסט נשמר מקומית בדפדפן — סגירה ורענון לא מאבדים אותו.</li>
+        </ul>
+      </div>
+    </aside>
+  </section>
+
+  <section class="features" id="features">
+    <div class="feature"><div class="fi">⚡</div><h4>מהיר ופשוט</h4><p>גוררים תמונה, מקבלים טקסט תוך שניות. בלי חשבון ובלי הגדרות.</p></div>
+    <div class="feature"><div class="fi">✏️</div><h4>עריכה ומחיקה בקליק</h4><p>כל קטע טקסט ניתן לעריכה במקום, לשכפול, למחיקה — עם ביטול מיידי.</p></div>
+    <div class="feature"><div class="fi">🔍</div><h4>חיפוש חכם</h4><p>חיפוש בכל המסמכים עם הדגשת ההתאמות, גם בתוך טקסט שתמללתם.</p></div>
+    <div class="feature"><div class="fi">🔒</div><h4>פרטי לגמרי</h4><p>הזיהוי רץ בדפדפן שלכם. שום תמונה או טקסט לא נשלחים לשרת.</p></div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <b>מלל</b> · תמלול תמונות בעברית · עובד כולו בדפדפן · מבוסס Tesseract.js
+  </div>
+</footer>
+
+<input type="file" id="fileInput" accept="image/*" multiple hidden>
+<input type="file" id="cameraInput" accept="image/*" capture="environment" hidden>
+
+<!-- image viewer -->
+<div class="overlay" id="viewer" hidden>
+  <div class="viewer">
+    <button class="icon-btn close-v" id="viewerClose" aria-label="סגירה">✕</button>
+    <div class="stage"><img id="viewerImg" alt="התמונה שהועלתה"></div>
+    <div class="vbar">
+      <button class="btn small" id="vRotL">↺ סיבוב</button>
+      <button class="btn small" id="vRotR">↻ סיבוב</button>
+      <button class="btn small" id="vZoomIn">＋ זום</button>
+      <button class="btn small" id="vZoomOut">− זום</button>
+      <button class="btn small" id="vRerun">🔄 תמלול מחדש</button>
+      <button class="btn small" id="vDownload">⤓ הורדת התמונה</button>
+    </div>
+  </div>
+</div>
+
+<!-- help -->
+<div class="overlay" id="help" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="helpTitle">
+    <div class="sheet-head">
+      <h3 id="helpTitle">איך עובדים עם מלל</h3>
+      <button class="icon-btn" id="helpClose" aria-label="סגירה">✕</button>
+    </div>
+    <p style="margin:0 0 14px;color:var(--muted);font-size:13.5px">העלו תמונה → המנוע מזהה את הטקסט → עורכים, מוחקים ומייצאים. כל הפעולות המקומיות נשמרות אוטומטית.</p>
+    <table class="kbd-table">
+      <tr><td><kbd>Ctrl</kbd> + <kbd>V</kbd></td><td>הדבקת תמונה מהלוח</td></tr>
+      <tr><td><kbd>Ctrl</kbd> + <kbd>K</kbd></td><td>מעבר לשדה החיפוש</td></tr>
+      <tr><td><kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>C</kbd></td><td>העתקת כל הטקסט</td></tr>
+      <tr><td><kbd>Ctrl</kbd> + <kbd>S</kbd></td><td>הורדת הכול כקובץ טקסט</td></tr>
+      <tr><td><kbd>Esc</kbd></td><td>סגירת חלון / יציאה מעריכה</td></tr>
+    </table>
+    <h4 style="margin:18px 0 6px;font-size:14px">מה אפשר לעשות עם הטקסט</h4>
+    <p style="margin:0;color:var(--muted);font-size:13.2px;line-height:1.7">לערוך במקום, לשנות כיוון (עברית/אנגלית), לאחד שורות לפסקה, להעתיק, לחפש, לשכפל מסמך, לתמלל מחדש, להוריד TXT / Markdown / CSV / JSON ולהדפיס ל-PDF.</p>
+  </div>
+</div>
+
+<!-- confirm -->
+<div class="overlay" id="confirm" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="confirmTitle" style="max-width:430px">
+    <div class="sheet-head"><h3 id="confirmTitle">ניקוי הכול</h3></div>
+    <p style="margin:0 0 18px;color:var(--muted);font-size:14px" id="confirmBody">כל המסמכים והטקסטים יימחקו מהדפדפן. אפשר לבטל מיד אחרי הפעולה.</p>
+    <div style="display:flex;gap:8px;justify-content:flex-start">
+      <button class="btn danger" id="confirmYes">כן, למחוק</button>
+      <button class="btn ghost" id="confirmNo">ביטול</button>
+    </div>
+  </div>
+</div>
+
+<div class="toasts" id="toasts" aria-live="polite"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@7.0.0/dist/tesseract.min.js"></script>
+<script>
+(function(){
+  "use strict";
+  const $ = (s, r) => (r || document).querySelector(s);
+  const $$ = (s, r) => Array.prototype.slice.call((r || document).querySelectorAll(s));
+  const uid = () => Math.random().toString(36).slice(2, 10);
+  const LS_KEY = "malal.v1";
+
+  const state = {
+    docs: [],
+    query: "",
+    theme: "light",
+    lang: "heb+eng",
+    preprocess: true,
+    fontSize: 17,
+    editingId: null,
+    viewerId: null,
+    totalMs: 0
+  };
+  const blobs = new Map();   // id -> Blob
+  const urls = new Map();    // id -> objectURL
+  const undoStack = [];      // deleted docs
+
+  /* ---------------- persistence ---------------- */
+  let saveTimer = null;
+  function save() {
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => {
+      try {
+        const docs = state.docs.map(d => ({
+          id: d.id, name: d.name, thumb: d.thumb, text: d.text,
+          rtl: d.rtl, created: d.created, duration: d.duration, confidence: d.confidence,
+          status: d.status === "working" || d.status === "pending" ? (d.text ? "done" : "pending") : d.status,
+          error: d.error || ""
+        }));
+        localStorage.setItem(LS_KEY, JSON.stringify({
+          docs, theme: state.theme, lang: state.lang, preprocess: state.preprocess,
+          fontSize: state.fontSize, totalMs: state.totalMs
+        }));
+      } catch (e) { /* storage full / disabled */ }
+    }, 250);
+  }
+  function load() {
+    let raw = null;
+    try { raw = localStorage.getItem(LS_KEY); } catch (e) {}
+    if (!raw) return;
+    try {
+      const data = JSON.parse(raw);
+      state.docs = (data.docs || []).map(d => Object.assign({
+        status: "done", progress: 0, error: "", thumb: "", text: "", name: "מסמך", rtl: true
+      }, d));
+      state.theme = data.theme === "dark" ? "dark" : "light";
+      if (data.lang) state.lang = data.lang;
+      state.preprocess = data.preprocess !== false;
+      state.fontSize = data.fontSize || 17;
+      state.totalMs = data.totalMs || 0;
+    } catch (e) {}
+  }
+
+  /* ---------------- tiny idb for images ---------------- */
+  function idb() {
+    return new Promise((res, rej) => {
+      if (!("indexedDB" in window)) return rej(new Error("no idb"));
+      const r = indexedDB.open("malal-images", 1);
+      r.onupgradeneeded = () => { try { r.result.createObjectStore("images"); } catch (e) {} };
+      r.onsuccess = () => res(r.result);
+      r.onerror = () => rej(r.error);
+    });
+  }
+  async function idbPut(id, blob) {
+    try {
+      const db = await idb();
+      await new Promise((res, rej) => {
+        const tx = db.transaction("images", "readwrite");
+        tx.objectStore("images").put(blob, id);
+        tx.oncomplete = res; tx.onerror = () => rej(tx.error);
+      });
+    } catch (e) {}
+  }
+  async function idbGet(id) {
+    try {
+      const db = await idb();
+      return await new Promise((res, rej) => {
+        const tx = db.transaction("images", "readonly");
+        const rq = tx.objectStore("images").get(id);
+        rq.onsuccess = () => res(rq.result || null);
+        rq.onerror = () => rej(rq.error);
+      });
+    } catch (e) { return null; }
+  }
+  async function idbDel(id) {
+    try {
+      const db = await idb();
+      const tx = db.transaction("images", "readwrite");
+      tx.objectStore("images").delete(id);
+    } catch (e) {}
+  }
+
+  /* ---------------- toasts ---------------- */
+  function toast(msg, opts) {
+    opts = opts || {};
+    const el = document.createElement("div");
+    el.className = "toast";
+    const icon = opts.spinner ? '<span class="spinner"></span>' : (opts.icon ? '<span>' + opts.icon + "</span>" : "");
+    el.innerHTML = icon + "<div>" + msg + "</div>";
+    if (opts.undo) {
+      const b = document.createElement("button");
+      b.className = "undo"; b.textContent = "ביטול";
+      b.onclick = () => { el.remove(); opts.undo(); };
+      el.appendChild(b);
+    }
+    $("#toasts").appendChild(el);
+    const life = opts.life || (opts.undo ? 7000 : 3200);
+    setTimeout(() => { el.classList.add("out"); setTimeout(() => el.remove(), 220); }, life);
+    return el;
+  }
+
+  /* ---------------- helpers ---------------- */
+  const getDoc = id => state.docs.find(d => d.id === id);
+  const wordCount = t => (t || "").trim() ? (t.trim().match(/[^\s]+/g) || []).length : 0;
+  const charCount = t => (t || "").replace(/\s/g, "").length;
+  function esc(s) {
+    return String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  }
+  function fmtTime(ms) {
+    if (!ms) return "0s";
+    const s = ms / 1000;
+    if (s < 60) return (s < 10 ? s.toFixed(1) : Math.round(s)) + "s";
+    return Math.floor(s / 60) + ":" + String(Math.round(s % 60)).padStart(2, "0");
+  }
+  function tidyText(raw) {
+    return String(raw || "")
+      .replace(/\r/g, "")
+      .replace(/\u00a0/g, " ")
+      .replace(/[ \t]+\n/g, "\n")
+      .replace(/[ \t]{2,}/g, " ")
+      .replace(/\n{3,}/g, "\n\n")
+      .replace(/^[\s\u200e\u200f]+|[\s\u200e\u200f]+$/g, "");
+  }
+  function isRtl(text) {
+    const heb = (text.match(/[\u0590-\u05FF]/g) || []).length;
+    const lat = (text.match(/[A-Za-z]/g) || []).length;
+    return heb >= lat;
+  }
+  function highlight(text) {
+    const safe = esc(text);
+    const q = state.query.trim();
+    if (!q) return safe;
+    try {
+      return safe.replace(new RegExp("(" + q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + ")", "gi"), "<mark>$1</mark>");
+    } catch (e) { return safe; }
+  }
+  async function copyText(text, okMsg) {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast(okMsg || "הטקסט הועתק", { icon: "✅" });
+    } catch (e) {
+      const ta = document.createElement("textarea");
+      ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0";
+      document.body.appendChild(ta); ta.select();
+      try { document.execCommand("copy"); toast(okMsg || "הטקסט הועתק", { icon: "✅" }); }
+      catch (err) { toast("ההעתקה נכשלה — נסו שוב", { icon: "⚠️" }); }
+      ta.remove();
+    }
+  }
+
+  /* ---------------- engine ---------------- */
+  let worker = null, workerLang = null, engineBusy = false;
+  const STAGE_HE = {
+    "loading tesseract core": "טוען מנוע",
+    "initializing tesseract": "מאתחל מנוע",
+    "loading language traineddata": "טוען נתוני שפה",
+    "initializing api": "מכין זיהוי",
+    "recognizing text": "מזהה טקסט"
+  };
+  function setEngine(text, kind) {
+    $("#engineText").textContent = text;
+    $("#engineDot").className = "dot " + (kind || "");
+  }
+  async function getWorker() {
+    if (worker && workerLang === state.lang) return worker;
+    if (worker) { try { await worker.terminate(); } catch (e) {} worker = null; workerLang = null; }
+    if (typeof Tesseract === "undefined") throw new Error("ספריית הזיהוי לא נטענה — בדקו את החיבור לאינטרנט ורעננו");
+    engineBusy = true;
+    setEngine("טוען מנוע OCR…", "busy");
+    worker = await Tesseract.createWorker(state.lang, 1, {
+      logger: m => {
+        const d = getDoc(state.processingId);
+        if (!d) return;
+        if (m.status === "recognizing text") {
+          d.progress = Math.round((m.progress || 0) * 100);
+          d.stage = "מזהה טקסט";
+        } else {
+          d.stage = STAGE_HE[m.status] || m.status;
+        }
+        paintProgress(d);
+      }
+    });
+    workerLang = state.lang;
+    engineBusy = false;
+    setEngine("המנוע מוכן · " + langLabel(state.lang), "ready");
+    return worker;
+  }
+  function langLabel(v) {
+    const map = { "heb+eng": "עברית + אנגלית", heb: "עברית", eng: "אנגלית", ara: "ערבית", rus: "רוסית", fra: "צרפתית", spa: "ספרדית" };
+    return map[v] || v;
+  }
+  function resetEngine() {
+    if (worker) { try { worker.terminate(); } catch (e) {} }
+    worker = null; workerLang = null;
+    setEngine("המנוע ייטען בתמלול הבא", "");
+  }
+
+  /* ---------------- image intake ---------------- */
+  const MAX_SIDE = 2400;
+  async function makeThumb(blob) {
+    try {
+      const bmp = await createImageBitmap(blob);
+      const scale = Math.min(1, 320 / Math.max(bmp.width, bmp.height));
+      const c = document.createElement("canvas");
+      c.width = Math.max(1, Math.round(bmp.width * scale));
+      c.height = Math.max(1, Math.round(bmp.height * scale));
+      c.getContext("2d").drawImage(bmp, 0, 0, c.width, c.height);
+      bmp.close && bmp.close();
+      return c.toDataURL("image/jpeg", 0.72);
+    } catch (e) { return ""; }
+  }
+  async function addFiles(fileList) {
+    const files = Array.prototype.slice.call(fileList || []).filter(f => f && f.type && f.type.indexOf("image/") === 0);
+    if (!files.length) { toast("לא נמצאו תמונות. בחרו קובץ PNG/JPG.", { icon: "⚠️" }); return; }
+    const ids = [];
+    for (const file of files) {
+      const id = uid();
+      const doc = {
+        id, name: file.name && file.name !== "image.png" ? file.name.replace(/\.[a-z0-9]+$/i, "") : "תמונה " + (state.docs.length + 1),
+        thumb: "", text: "", rtl: true, status: "pending", progress: 0, stage: "ממתין",
+        error: "", created: Date.now(), duration: 0, confidence: null
+      };
+      state.docs.unshift(doc);
+      blobs.set(id, file);
+      try { urls.set(id, URL.createObjectURL(file)); } catch (e) {}
+      idbPut(id, file);
+      ids.push({ id, file });
+    }
+    render();
+    // thumbnails in background, then OCR
+    ids.forEach(async ({ id, file }) => {
+      const t = await makeThumb(file);
+      const d = getDoc(id);
+      if (d) { d.thumb = t; save(); renderThumbs(); }
+    });
+    ids.forEach(({ id }) => queue.push(id));
+    pump();
+    toast(files.length === 1 ? "התמונה נוספה — מתחיל תמלול" : files.length + " תמונות נוספו — מתחיל תמלול", { icon: "🖼️" });
+  }
+
+  /* ---------------- preprocessing ---------------- */
+  async function prepare(blob) {
+    const bmp = await createImageBitmap(blob);
+    let scale = Math.min(1, MAX_SIDE / Math.max(bmp.width, bmp.height));
+    if (bmp.width < 900) scale = Math.min(2, 900 / bmp.width);
+    const w = Math.max(1, Math.round(bmp.width * scale));
+    const h = Math.max(1, Math.round(bmp.height * scale));
+    const c = document.createElement("canvas");
+    c.width = w; c.height = h;
+    const ctx = c.getContext("2d", { willReadFrequently: true });
+    ctx.drawImage(bmp, 0, 0, w, h);
+    bmp.close && bmp.close();
+    if (state.preprocess) {
+      try {
+        const img = ctx.getImageData(0, 0, w, h);
+        const p = img.data;
+        for (let i = 0; i < p.length; i += 4) {
+          let g = 0.299 * p[i] + 0.587 * p[i + 1] + 0.114 * p[i + 2];
+          g = (g - 128) * 1.32 + 128 + 8;
+          g = g < 0 ? 0 : g > 255 ? 255 : g;
+          p[i] = p[i + 1] = p[i + 2] = g;
+        }
+        ctx.putImageData(img, 0, 0);
+      } catch (e) {}
+    }
+    return c;
+  }
+
+  /* ---------------- OCR queue ---------------- */
+  const queue = [];
+  let pumping = false;
+  async function pump() {
+    if (pumping) return;
+    pumping = true;
+    while (queue.length) {
+      const id = queue.shift();
+      const doc = getDoc(id);
+      if (!doc || (doc.status !== "pending" && doc.status !== "error")) continue;
+      await runOcr(doc);
+    }
+    pumping = false;
+    updateQueueHint();
+  }
+  async function runOcr(doc) {
+    doc.status = "working"; doc.progress = 0; doc.stage = "מכין תמונה"; doc.error = "";
+    state.processingId = doc.id;
+    save(); render();
+    updateQueueHint();
+    const t0 = performance.now();
+    try {
+      let blob = blobs.get(doc.id) || await idbGet(doc.id);
+      if (!blob) throw new Error("התמונה כבר לא זמינה — העלו אותה שוב");
+      const input = await prepare(blob);
+      const w = await getWorker();
+      state.processingId = doc.id;
+      const res = await w.recognize(input);
+      const text = tidyText(res && res.data ? res.data.text : "");
+      doc.text = text || "";
+      doc.confidence = res && res.data ? Math.round(res.data.confidence || 0) : null;
+      doc.status = "done"; doc.progress = 100; doc.stage = "הושלם";
+      doc.rtl = isRtl(doc.text);
+      doc.duration = performance.now() - t0;
+      state.totalMs += doc.duration;
+      if (!doc.text) toast("לא זוהה טקסט בתמונה \"" + doc.name + "\"", { icon: "🤔" });
+    } catch (err) {
+      doc.status = "error";
+      const msg = (err && err.message) || "";
+      doc.error = /[\u0590-\u05FF]/.test(msg) ? msg : "התמלול נכשל. נסו תמונת JPG/PNG חדשה, או הפעילו ‘שיפור איכות’ ותמללו מחדש";
+      resetEngine();
+    }
+    state.processingId = null;
+    save(); render();
+    updateQueueHint();
+  }
+  function updateQueueHint() {
+    const pending = state.docs.filter(d => d.status === "pending" || d.status === "working").length;
+    $("#queueHint").textContent = pending ? "מתמלל " + pending + " תמונות…" : "";
+  }
+
+  /* ---------------- render ---------------- */
+  const listEl = $("#list");
+  function render() {
+    const q = state.query.trim().toLowerCase();
+    const docs = state.docs.filter(d => !q || (d.name + " " + d.text).toLowerCase().indexOf(q) !== -1);
+    const has = state.docs.length > 0;
+
+    $("#toolbar").hidden = !has;
+    $("#workspace").hidden = !has;
+    $("#features").hidden = has;
+
+    if (!has) { listEl.innerHTML = ""; updateStats(); return; }
+
+    listEl.innerHTML = docs.length ? "" : '<div class="panel" style="text-align:center;color:var(--muted)">לא נמצאו תוצאות לחיפוש הזה.</div>';
+    const frag = document.createDocumentFragment();
+    docs.forEach((d, i) => frag.appendChild(cardEl(d, i)));
+    listEl.appendChild(frag);
+    updateStats();
+    updateQueueHint();
+    $("#countChip").textContent = q ? docs.length + " מתוך " + state.docs.length : state.docs.length + (state.docs.length === 1 ? " מסמך" : " מסמכים");
+    $("#searchClear").hidden = !q;
+  }
+  function renderThumbs() {
+    // targeted thumbnail update — never rebuilds inputs or the editor
+    state.docs.forEach(d => {
+      const thumbEl = listEl.querySelector('.card[data-id="' + d.id + '"] .thumb');
+      if (!thumbEl || !d.thumb) return;
+      const img = thumbEl.querySelector("img");
+      if (!img) {
+        const ph = thumbEl.querySelector("div");
+        if (ph) ph.remove();
+        thumbEl.insertAdjacentHTML("afterbegin", '<img src="' + d.thumb + '" alt="">');
+      } else if (img.getAttribute("src") !== d.thumb) {
+        img.src = d.thumb;
+      }
+    });
+  }
+  function cardEl(d, index) {
+    const el = document.createElement("article");
+    el.className = "card" + (state.editingId === d.id ? " editing" : "");
+    el.dataset.id = d.id;
+    el.style.animationDelay = Math.min(index * 40, 240) + "ms";
+
+    const badge = d.status === "done" ? '<span class="badge done">הושלם</span>'
+      : d.status === "error" ? '<span class="badge err">שגיאה</span>'
+      : d.status === "working" ? '<span class="badge busy">' + (d.progress || 0) + "%</span>"
+      : '<span class="badge">ממתין</span>';
+
+    const thumb = '<div class="thumb" data-act="image" title="הצגת התמונה">' +
+      (d.thumb ? '<img src="' + d.thumb + '" alt="">' : '<div style="display:grid;place-items:center;height:100%;font-size:26px;color:var(--muted)">🖼️</div>') +
+      badge + '<span class="open">🔍</span></div>';
+
+    const meta = '<div class="meta">' +
+      '<span class="chip">' + wordCount(d.text) + " מילים</span>" +
+      '<span class="chip">' + charCount(d.text) + " תווים</span>" +
+      (d.duration ? '<span class="chip">' + fmtTime(d.duration) + "</span>" : "") +
+      (d.confidence ? '<span class="chip">דיוק ' + d.confidence + "%</span>" : "") +
+      "</div>";
+
+    let body = "";
+    if (state.editingId === d.id) {
+      body =
+        '<div class="body">' +
+          '<div class="card-head">' +
+            '<input class="doc-name" value="' + esc(d.name) + '" aria-label="שם המסמך" data-role="name">' +
+            '<div class="card-actions"><button class="act danger" data-act="delete">מחיקה</button></div>' +
+          "</div>" +
+          '<textarea class="editor" data-role="editor" dir="' + (d.rtl ? "rtl" : "ltr") + '" spellcheck="false"></textarea>' +
+          '<div class="edit-bar">' +
+            '<button class="btn primary small" data-act="save">✓ סיום עריכה</button>' +
+            '<button class="btn ghost small" data-act="paragraphs">איחוד לפסקאות</button>' +
+            '<button class="btn ghost small" data-act="tidy">ניקוי רווחים</button>' +
+            '<button class="btn ghost small" data-act="dir">כיוון ' + (d.rtl ? "LTR" : "RTL") + "</button>" +
+            '<span class="spacer"></span>' +
+            '<span class="hint-inline" data-role="editcount"></span>' +
+            '<button class="btn ghost small" data-act="cancel">ביטול</button>' +
+          "</div>" +
+        "</div>";
+    } else {
+      let content;
+      if (d.status === "working" || d.status === "pending") {
+        content = '<div class="progress"><div class="bar"><i style="width:' + (d.progress || 0) + '%"></i></div>' +
+          '<div class="lbl" data-role="stage">' + (d.stage || "ממתין") + "…</div></div>" +
+          '<div class="skeleton"><i></i><i></i><i></i></div>';
+      } else if (d.status === "error") {
+        content = '<div class="error-box"><span>⚠️</span><span>' + esc(d.error || "התמלול נכשל") + "</span>" +
+          '<button class="btn ghost small" data-act="retry">ניסיון נוסף</button></div>';
+      } else {
+        content = '<div class="text-view" dir="' + (d.rtl ? "rtl" : "ltr") + '" data-role="text">' + highlight(d.text) + "</div>";
+      }
+      body =
+        '<div class="body">' +
+          '<div class="card-head">' +
+            '<input class="doc-name" value="' + esc(d.name) + '" aria-label="שם המסמך" data-role="name">' +
+            meta +
+            '<div class="card-actions">' +
+              '<button class="act" data-act="copy" title="העתקת הטקסט">העתקה</button>' +
+              '<button class="act" data-act="edit" title="עריכה">✏️ עריכה</button>' +
+              '<button class="act icon" data-act="image" title="הצגת התמונה">🖼️</button>' +
+              '<details class="menu"><summary class="act icon" title="עוד פעולות">⋯</summary>' +
+                '<div class="menu-panel">' +
+                  '<button data-act="copy">📋 העתקת הטקסט</button>' +
+                  '<button data-act="paragraphs">↩︎ איחוד שורות לפסקה</button>' +
+                  '<button data-act="tidy">🧹 ניקוי רווחים ושורות ריקות</button>' +
+                  '<button data-act="dir">⇄ החלפת כיוון טקסט</button>' +
+                  '<button data-act="duplicate">⧉ שכפול המסמך</button>' +
+                  '<button data-act="retry">🔄 תמלול מחדש</button>' +
+                  '<button data-act="download">⤓ הורדת הטקסט</button>' +
+                  '<hr><button data-act="delete" style="color:var(--bad)">🗑️ מחיקת המסמך</button>' +
+                "</div></details>" +
+              '<button class="act danger" data-act="delete" title="מחיקה">🗑️</button>' +
+            "</div>" +
+          "</div>" +
+          content +
+        "</div>";
+    }
+
+    el.innerHTML = state.editingId === d.id ? body : thumb + body;
+    if (state.editingId === d.id) {
+      const ta = el.querySelector('[data-role="editor"]');
+      if (ta) {
+        ta.value = d.text;
+        requestAnimationFrame(() => { ta.focus(); autosize(ta); });
+        ta.addEventListener("input", () => { d.text = ta.value; autosize(ta); updateEditCount(el, d); save(); });
+        ta.addEventListener("keydown", e => {
+          if (e.key === "Escape") { state.editingId = null; save(); render(); }
+          if ((e.ctrlKey || e.metaKey) && e.key === "Enter") { state.editingId = null; save(); render(); }
+        });
+        updateEditCount(el, d);
+      }
+    }
+    return el;
+  }
+  function autosize(ta) {
+    ta.style.height = "auto";
+    ta.style.height = Math.min(ta.scrollHeight + 4, 640) + "px";
+  }
+  function updateEditCount(el, d) {
+    const n = el.querySelector('[data-role="editcount"]');
+    if (n) n.textContent = wordCount(d.text) + " מילים · " + charCount(d.text) + " תווים";
+  }
+  function paintProgress(d) {
+    const card = listEl.querySelector('.card[data-id="' + d.id + '"]');
+    if (!card) return;
+    const bar = card.querySelector(".bar i");
+    const lbl = card.querySelector('[data-role="stage"]');
+    const badge = card.querySelector(".badge");
+    if (bar) bar.style.width = (d.progress || 0) + "%";
+    if (lbl) lbl.textContent = (d.stage || "מזהה טקסט") + (d.progress ? " · " + d.progress + "%" : "") + "…";
+    if (badge) badge.textContent = (d.progress || 0) + "%";
+    updateStats();
+  }
+  function updateStats() {
+    const docs = state.docs;
+    $("#stDocs").textContent = docs.length;
+    $("#stWords").textContent = docs.reduce((a, d) => a + wordCount(d.text), 0).toLocaleString("he-IL");
+    $("#stChars").textContent = docs.reduce((a, d) => a + charCount(d.text), 0).toLocaleString("he-IL");
+    $("#stTime").textContent = fmtTime(state.totalMs);
+  }
+
+  /* ---------------- actions ---------------- */
+  function startEdit(id) { state.editingId = id; render(); }
+  function endEdit() { state.editingId = null; save(); render(); }
+  function deleteDoc(id, opts) {
+    const i = state.docs.findIndex(d => d.id === id);
+    if (i < 0) return;
+    const doc = state.docs.splice(i, 1)[0];
+    const blob = blobs.get(id);
+    blobs.delete(id);
+    const url = urls.get(id);
+    if (url) { URL.revokeObjectURL(url); urls.delete(id); }
+    idbDel(id);
+    const entry = { doc, index: i, blob };
+    undoStack.push(entry);
+    if (state.editingId === id) state.editingId = null;
+    save(); render();
+    if (!(opts && opts.silent)) {
+      toast('<b>' + esc(doc.name) + "</b> נמחק", {
+        icon: "🗑️", undo: () => {
+          const at = undoStack.indexOf(entry);
+          if (at === -1) return;
+          undoStack.splice(at, 1);
+          state.docs.splice(Math.min(entry.index, state.docs.length), 0, entry.doc);
+          if (entry.blob) { blobs.set(entry.doc.id, entry.blob); idbPut(entry.doc.id, entry.blob); }
+          save(); render();
+          toast("המחיקה בוטלה", { icon: "↩️" });
+        }
+      });
+    }
+  }
+  function mergeParagraphs(id) {
+    const d = getDoc(id); if (!d || !d.text) return;
+    d.text = d.text.split(/\n{2,}/).map(block =>
+      block.split("\n").map(l => l.trim()).filter(Boolean).join(" ")
+    ).filter(Boolean).join("\n\n");
+    d.rtl = isRtl(d.text);
+    save(); render(); toast("השורות אוחדו לפסקאות", { icon: "↩️" });
+  }
+  function tidyDoc(id) {
+    const d = getDoc(id); if (!d) return;
+    d.text = tidyText(d.text).split("\n").map(l => l.replace(/\s{2,}/g, " ").replace(/\s+([,.;:!?])/g, "$1")).join("\n");
+    save(); render(); toast("הטקסט נוקה", { icon: "🧹" });
+  }
+  function toggleDir(id) {
+    const d = getDoc(id); if (!d) return;
+    d.rtl = !d.rtl; save(); render();
+  }
+  function duplicateDoc(id) {
+    const d = getDoc(id); if (!d) return;
+    const copy = Object.assign({}, d, { id: uid(), name: d.name + " (עותק)", created: Date.now(), status: d.text ? "done" : "pending" });
+    state.docs.unshift(copy);
+    const b = blobs.get(id);
+    if (b) { blobs.set(copy.id, b); idbPut(copy.id, b); try { urls.set(copy.id, URL.createObjectURL(b)); } catch (e) {} }
+    save(); render(); toast("המסמך שוכפל", { icon: "⧉" });
+  }
+  function download(name, content, mime) {
+    const blob = new Blob([content], { type: (mime || "text/plain") + ";charset=utf-8" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  }
+  function allText() {
+    return state.docs.map(d => d.name + "\n" + d.text).join("\n\n" + "- - -\n\n");
+  }
+  function exportAs(kind) {
+    if (!state.docs.length) { toast("אין עדיין טקסט לייצוא", { icon: "🤔" }); return; }
+    const stamp = new Date().toISOString().slice(0, 10);
+    if (kind === "txt") download("malal-" + stamp + ".txt", state.docs.map(d => d.name + "\n" + "=".repeat(Math.max(4, d.name.length)) + "\n" + d.text).join("\n\n\n"));
+    else if (kind === "md") download("malal-" + stamp + ".md", state.docs.map(d => "## " + d.name + "\n\n" + d.text).join("\n\n---\n\n"), "text/markdown");
+    else if (kind === "json") download("malal-backup-" + stamp + ".json", JSON.stringify({
+      app: "malal", exportedAt: new Date().toISOString(),
+      docs: state.docs.map(d => ({ name: d.name, text: d.text, rtl: d.rtl, created: d.created, confidence: d.confidence, duration: d.duration }))
+    }, null, 2), "application/json");
+    else if (kind === "csv") {
+      const rows = [["שם", "טקסט", "מילים", "תווים"]].concat(state.docs.map(d => [d.name, d.text, wordCount(d.text), charCount(d.text)]));
+      const csv = rows.map(r => r.map(v => '"' + String(v).replace(/"/g, '""') + '"').join(",")).join("\n");
+      download("malal-" + stamp + ".csv", "\ufeff" + csv, "text/csv");
+    } else if (kind === "print") { window.print(); }
+    else if (kind === "share") {
+      if (navigator.share) navigator.share({ title: "טקסט שתמללתי במלל", text: allText().slice(0, 2000) }).catch(() => {});
+      else copyText(allText(), "אין שיתוף בדפדפן הזה — הטקסט הועתק");
+    }
+    toast("מייצא…", { icon: "⤓" });
+  }
+
+  /* ---------------- viewer ---------------- */
+  let viewRot = 0, viewZoom = 1;
+  async function openViewer(id) {
+    const d = getDoc(id); if (!d) return;
+    state.viewerId = id;
+    viewRot = 0; viewZoom = 1;
+    let url = urls.get(id);
+    if (!url) {
+      const b = blobs.get(id) || await idbGet(id);
+      if (b) { url = URL.createObjectURL(b); urls.set(id, url); blobs.set(id, b); }
+    }
+    if (!url) { toast("התמונה לא זמינה יותר", { icon: "⚠️" }); return; }
+    $("#viewerImg").src = url;
+    applyView();
+    $("#viewer").hidden = false;
+  }
+  function applyView() {
+    $("#viewerImg").style.transform = "rotate(" + viewRot + "deg) scale(" + viewZoom + ")";
+  }
+  function closeViewer() { $("#viewer").hidden = true; state.viewerId = null; }
+
+  /* ---------------- theme & font ---------------- */
+  function applyTheme() {
+    document.documentElement.setAttribute("data-theme", state.theme);
+    $("#btnTheme").textContent = state.theme === "dark" ? "☀️" : "🌙";
+    document.querySelector('meta[name="theme-color"]').setAttribute("content", state.theme === "dark" ? "#0a0c13" : "#f6f7fb");
+  }
+  function applyFont() {
+    document.documentElement.style.setProperty("--read-size", state.fontSize + "px");
+  }
+
+  /* ---------------- events ---------------- */
+  function bind() {
+    $("#btnPick").onclick = () => $("#fileInput").click();
+    $("#btnAddMore").onclick = () => $("#fileInput").click();
+    $("#btnCamera").onclick = () => $("#cameraInput").click();
+    $("#btnPaste").onclick = async () => {
+      try {
+        const items = await navigator.clipboard.read();
+        for (const it of items) {
+          const type = it.types.find(t => t.indexOf("image/") === 0);
+          if (type) { const b = await it.getType(type); addFiles([new File([b], "הדבקה-" + Date.now() + ".png", { type })]); return; }
+        }
+        toast("אין תמונה בלוח — העתיקו צילום מסך ונסו שוב", { icon: "📋" });
+      } catch (e) {
+        toast("אין הרשאה לקרוא מהלוח — השתמשו ב־Ctrl+V", { icon: "⌨️" });
+      }
+    };
+    $("#fileInput").addEventListener("change", e => { addFiles(e.target.files); e.target.value = ""; });
+    $("#cameraInput").addEventListener("change", e => { addFiles(e.target.files); e.target.value = ""; });
+
+    const dz = $("#dropzone");
+    ["dragenter", "dragover"].forEach(ev => dz.addEventListener(ev, e => { e.preventDefault(); dz.classList.add("over"); }));
+    ["dragleave", "drop"].forEach(ev => dz.addEventListener(ev, e => { e.preventDefault(); if (ev === "dragleave" && e.relatedTarget && dz.contains(e.relatedTarget)) return; dz.classList.remove("over"); }));
+    dz.addEventListener("drop", e => { if (e.dataTransfer && e.dataTransfer.files) addFiles(e.dataTransfer.files); });
+    window.addEventListener("dragover", e => { if (e.dataTransfer && Array.prototype.indexOf.call(e.dataTransfer.types, "Files") !== -1) e.preventDefault(); });
+    window.addEventListener("drop", e => {
+      if (e.target.closest && e.target.closest("#dropzone")) return;
+      if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length) { e.preventDefault(); addFiles(e.dataTransfer.files); }
+    });
+
+    document.addEventListener("paste", e => {
+      if (!e.clipboardData) return;
+      const items = e.clipboardData.items;
+      const files = [];
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].type && items[i].type.indexOf("image/") === 0) {
+          const f = items[i].getAsFile();
+          if (f) files.push(f);
+        }
+      }
+      if (files.length) { e.preventDefault(); addFiles(files); }
+    });
+
+    $("#langSel").addEventListener("change", e => {
+      state.lang = e.target.value;
+      resetEngine();
+      save();
+      toast("שפת התמלול: " + langLabel(state.lang), { icon: "🌐" });
+    });
+    $("#prepChk").addEventListener("change", e => { state.preprocess = e.target.checked; save(); });
+
+    $("#btnTheme").onclick = () => { state.theme = state.theme === "dark" ? "light" : "dark"; applyTheme(); save(); };
+    $("#btnHelp").onclick = () => { $("#help").hidden = false; };
+    $("#helpClose").onclick = () => { $("#help").hidden = true; };
+    $("#help").addEventListener("click", e => { if (e.target.id === "help") $("#help").hidden = true; });
+
+    $("#searchInput").addEventListener("input", e => {
+      if (state.editingId) { state.editingId = null; }
+      state.query = e.target.value;
+      render();
+    });
+    $("#searchClear").onclick = () => { $("#searchInput").value = ""; state.query = ""; render(); $("#searchInput").focus(); };
+
+    $("#btnFontUp").onclick = () => { state.fontSize = Math.min(24, state.fontSize + 1); applyFont(); save(); };
+    $("#btnFontDown").onclick = () => { state.fontSize = Math.max(13, state.fontSize - 1); applyFont(); save(); };
+
+    $("#btnCopyAll").onclick = () => copyText(allText(), "כל הטקסט הועתק");
+    $("#btnCopyAll2").onclick = () => copyText(allText(), "כל הטקסט הועתק");
+    $("#btnTxt").onclick = () => exportAs("txt");
+    $("#btnPrint2").onclick = () => exportAs("print");
+    $("#btnClearAll").onclick = () => { $("#confirm").hidden = false; };
+    $("#confirmNo").onclick = () => { $("#confirm").hidden = true; };
+    $("#confirmYes").onclick = () => {
+      $("#confirm").hidden = true;
+      const backup = state.docs.slice();
+      state.docs.forEach(d => { const u = urls.get(d.id); if (u) URL.revokeObjectURL(u); urls.delete(d.id); blobs.delete(d.id); idbDel(d.id); });
+      state.docs = [];
+      save(); render();
+      toast("כל המסמכים נמחקו", {
+        icon: "🗑️", undo: () => {
+          state.docs = backup;
+          backup.forEach(d => idbGet(d.id).then(b => { if (b) blobs.set(d.id, b); }));
+          save(); render();
+        }
+      });
+    };
+
+    const exportBtn = $("#btnExport"), exportPanel = $("#exportPanel");
+    exportBtn.onclick = e => { e.stopPropagation(); exportPanel.hidden = !exportPanel.hidden; };
+    exportPanel.addEventListener("click", e => {
+      const b = e.target.closest("[data-export]");
+      if (!b) return;
+      exportPanel.hidden = true;
+      exportAs(b.dataset.export);
+    });
+    document.addEventListener("click", e => {
+      if (!e.target.closest(".dd")) exportPanel.hidden = true;
+      if (!e.target.closest(".menu")) $$(".menu[open]").forEach(m => m.removeAttribute("open"));
+    });
+
+    // list delegation
+    listEl.addEventListener("click", e => {
+      const card = e.target.closest(".card"); if (!card) return;
+      const id = card.dataset.id;
+      const doc = getDoc(id); if (!doc) return;
+      const btn = e.target.closest("[data-act]");
+      const act = btn ? btn.dataset.act : null;
+      if (act === "image") { openViewer(id); return; }
+      if (!act) return;
+      if (act === "copy") copyText(doc.text || "", "הטקסט הועתק");
+      else if (act === "edit") startEdit(id);
+      else if (act === "save" || act === "cancel") { endEdit(); }
+      else if (act === "delete") deleteDoc(id);
+      else if (act === "retry") { doc.status = "pending"; doc.progress = 0; doc.error = ""; queue.push(id); pump(); render(); }
+      else if (act === "paragraphs") mergeParagraphs(id);
+      else if (act === "tidy") tidyDoc(id);
+      else if (act === "dir") toggleDir(id);
+      else if (act === "duplicate") duplicateDoc(id);
+      else if (act === "download") download((doc.name || "text").replace(/[\\/:*?"<>|]/g, "-") + ".txt", doc.text || "");
+      e.target.closest("details") && e.target.closest("details").removeAttribute("open");
+    });
+    listEl.addEventListener("dblclick", e => {
+      const text = e.target.closest('[data-role="text"]');
+      if (text) { const card = text.closest(".card"); if (card) startEdit(card.dataset.id); }
+    });
+    listEl.addEventListener("input", e => {
+      const nameInput = e.target.closest('[data-role="name"]');
+      if (!nameInput) return;
+      const card = nameInput.closest(".card");
+      const d = getDoc(card.dataset.id);
+      if (d) { d.name = nameInput.value || "ללא שם"; save(); }
+    });
+    listEl.addEventListener("keydown", e => {
+      if (e.key === "Enter" && e.target.matches('[data-role="name"]')) { e.target.blur(); }
+    });
+
+    // viewer
+    $("#viewerClose").onclick = closeViewer;
+    $("#viewer").addEventListener("click", e => { if (e.target.id === "viewer") closeViewer(); });
+    $("#vRotL").onclick = () => { viewRot -= 90; applyView(); };
+    $("#vRotR").onclick = () => { viewRot += 90; applyView(); };
+    $("#vZoomIn").onclick = () => { viewZoom = Math.min(4, viewZoom + .25); applyView(); };
+    $("#vZoomOut").onclick = () => { viewZoom = Math.max(.4, viewZoom - .25); applyView(); };
+    $("#vRerun").onclick = () => {
+      const id = state.viewerId; closeViewer();
+      const d = getDoc(id); if (!d) return;
+      d.status = "pending"; d.progress = 0; d.error = ""; queue.push(id); pump(); render();
+    };
+    $("#vDownload").onclick = async () => {
+      const id = state.viewerId; const d = getDoc(id); if (!d) return;
+      const b = blobs.get(id) || await idbGet(id);
+      if (!b) return;
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(b);
+      a.download = (d.name || "image") + ".png";
+      document.body.appendChild(a); a.click(); a.remove();
+    };
+
+    // keyboard
+    document.addEventListener("keydown", e => {
+      const meta = e.ctrlKey || e.metaKey;
+      if (meta && e.key.toLowerCase() === "k") { e.preventDefault(); $("#searchInput").focus(); }
+      else if (meta && e.shiftKey && e.key.toLowerCase() === "c") { e.preventDefault(); copyText(allText(), "כל הטקסט הועתק"); }
+      else if (meta && e.key.toLowerCase() === "s") { e.preventDefault(); exportAs("txt"); }
+      else if (e.key === "Escape") {
+        if (!$("#viewer").hidden) closeViewer();
+        else if (!$("#help").hidden) $("#help").hidden = true;
+        else if (!$("#confirm").hidden) $("#confirm").hidden = true;
+        else if (state.editingId) endEdit();
+      }
+    });
+
+    window.addEventListener("beforeunload", e => {
+      const busy = state.docs.some(d => d.status === "working" || d.status === "pending");
+      if (busy) { e.preventDefault(); e.returnValue = ""; }
+    });
+  }
+
+  /* ---------------- boot ---------------- */
+  load();
+  applyTheme();
+  applyFont();
+  $("#langSel").value = state.lang;
+  $("#prepChk").checked = state.preprocess;
+  bind();
+  render();
+  if (state.docs.length) setEngine("המנוע ייטען בתמלול הבא", "");
+})();
+</script>
+</body>
+</html>
