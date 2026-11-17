@@ -353,6 +353,43 @@ kbd{
 .viewer .vbar .btn:hover{background:#fff}
 .viewer .close-v{position:absolute;top:-6px;inset-inline-start:-6px;background:rgba(255,255,255,.94);color:#14161f;border-radius:50%;width:38px;height:38px;z-index:2}
 
+/* ---------- in-place editor ---------- */
+.ip-sheet{max-width:1080px;width:100%;padding:16px;display:flex;flex-direction:column;gap:12px;max-height:94vh;overflow:hidden}
+.ip-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ip-title{display:flex;flex-direction:column;gap:1px;min-width:0}
+.ip-badge{font-size:10.5px;font-weight:800;letter-spacing:.06em;color:var(--brand1);text-transform:uppercase}
+.ip-title b{font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:330px}
+.ip-actions{margin-inline-start:auto;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.ip-bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.ip-bar .field{font-size:12.5px;padding:5px 10px}
+.ip-bar select{font-size:12.5px}
+.ip-size{display:inline-flex;gap:6px;align-items:center}
+.ip-size button{border:1px solid var(--line);border-radius:7px;width:26px;height:23px;font-size:12px;color:var(--ink-soft);background:var(--panel-soft);display:grid;place-items:center}
+.ip-size button:hover{color:var(--ink);border-color:var(--line-strong)}
+.ip-stagewrap{flex:1;min-height:180px;background:#0a0c13;border-radius:16px;padding:12px;overflow:auto;display:flex;justify-content:center;align-items:flex-start}
+.ip-stage{position:relative;line-height:0;box-shadow:0 20px 60px -20px rgba(0,0,0,.85);border-radius:6px;overflow:hidden;flex:0 0 auto;background:#fff}
+.ip-stage img{display:block;width:100%;height:100%;user-select:none;-webkit-user-drag:none}
+.ip-layer{position:absolute;top:0;left:0;transform-origin:top left}
+.iline{
+  position:absolute;box-sizing:border-box;display:flex;align-items:center;
+  white-space:nowrap;overflow:hidden;line-height:1;cursor:text;border-radius:3px;
+  border:1px dashed transparent;color:transparent;background:transparent;
+  padding:0 1px;transition:background .12s ease;
+}
+.iline:hover{border-color:rgba(129,140,248,.75);background:color-mix(in srgb,var(--brand1) 14%,transparent)}
+.iline.dirty,.iline:focus{color:var(--fg,#111);background:linear-gradient(180deg,var(--bg1,#fff),var(--bg2,#fff));border-color:transparent}
+.iline:focus{outline:2px solid rgba(99,102,241,.8);outline-offset:1px;z-index:3}
+.ip-stage.boxes .iline{border-color:rgba(129,140,248,.5)}
+.ip-empty{padding:26px;color:#c7ccdd;font-size:14px;text-align:center}
+.ip-hint{margin:0;font-size:12px;color:var(--muted);text-align:center}
+.act.primary-act{color:var(--brand1);background:color-mix(in srgb,var(--brand1) 10%,transparent);border-color:color-mix(in srgb,var(--brand1) 22%,transparent)}
+@media (max-width:640px){
+  .ip-sheet{padding:12px;max-height:97vh}
+  .ip-title b{max-width:150px}
+  .ip-bar .field{font-size:11.5px;padding:4px 8px}
+  .ip-stagewrap{padding:8px}
+}
+
 /* ---------- toasts ---------- */
 .toasts{position:fixed;bottom:22px;inset-inline-start:50%;transform:translateX(-50%);z-index:120;display:flex;flex-direction:column;gap:9px;align-items:center;width:min(92vw,440px);pointer-events:none}
 .toast{
@@ -575,6 +612,8 @@ kbd{
     </table>
     <h4 style="margin:18px 0 6px;font-size:14px">מה אפשר לעשות עם הטקסט</h4>
     <p style="margin:0;color:var(--muted);font-size:13.2px;line-height:1.7">לערוך במקום, לשנות כיוון (עברית/אנגלית), לאחד שורות לפסקה, להעתיק, לחפש, לשכפל מסמך, לתמלל מחדש, להוריד TXT / Markdown / CSV / JSON ולהדפיס ל-PDF.</p>
+    <h4 style="margin:18px 0 6px;font-size:14px">עריכה על התמונה</h4>
+    <p style="margin:0;color:var(--muted);font-size:13.2px;line-height:1.7">לחצו על "✏️ על התמונה" בכרטיס המסמך — כל שורה בתמונה הופכת לשדה עריכה. כותבים ישר במקום, השורה מקבלת רקע משוחזר מהתמונה, ואפשר לבחור גופן, משקל, צבע, יישור וגודל. בסיום מייצאים את התמונה הערוכה כ-PNG.</p>
   </div>
 </div>
 
@@ -587,6 +626,70 @@ kbd{
       <button class="btn danger" id="confirmYes">כן, למחוק</button>
       <button class="btn ghost" id="confirmNo">ביטול</button>
     </div>
+  </div>
+</div>
+
+<!-- in-place editor -->
+<div class="overlay" id="inplace" hidden>
+  <div class="sheet ip-sheet" role="dialog" aria-modal="true" aria-label="עריכת הטקסט על התמונה">
+    <div class="ip-head">
+      <div class="ip-title">
+        <span class="ip-badge">עריכה על התמונה</span>
+        <b id="ipName">מסמך</b>
+      </div>
+      <div class="ip-actions">
+        <button class="btn soft small" id="ipExport" title="שמירת התמונה עם הטקסט הערוך">⤓ ייצוא כתמונה</button>
+        <button class="btn ghost small" id="ipCopy">📋 העתקת הטקסט</button>
+        <button class="btn ghost small" id="ipReset" title="ביטול כל השינויים בעורך">↺ איפוס</button>
+        <button class="icon-btn" id="ipClose" aria-label="סגירה" title="סגירה">✕</button>
+      </div>
+    </div>
+    <div class="ip-bar">
+      <label class="field">גופן
+        <select id="ipFont" aria-label="גופן">
+          <option value="Heebo, Arial, sans-serif">Heebo</option>
+          <option value="Arial, Helvetica, sans-serif">Arial</option>
+          <option value="'Times New Roman', Times, serif">Times</option>
+          <option value="'Courier New', monospace">Courier</option>
+        </select>
+      </label>
+      <label class="field">משקל
+        <select id="ipWeight" aria-label="משקל הגופן">
+          <option value="400">רגיל</option>
+          <option value="600">בינוני</option>
+          <option value="700">מודגש</option>
+        </select>
+      </label>
+      <label class="field">צבע
+        <select id="ipColor" aria-label="צבע הטקסט">
+          <option value="auto">אוטומטי מהתמונה</option>
+          <option value="#111111">שחור</option>
+          <option value="#ffffff">לבן</option>
+          <option value="#0b3d91">כחול</option>
+          <option value="#b3125b">ורוד</option>
+        </select>
+      </label>
+      <label class="field">יישור
+        <select id="ipAlign" aria-label="יישור הטקסט">
+          <option value="auto">אוטומטי</option>
+          <option value="right">ימין</option>
+          <option value="center">מרכז</option>
+          <option value="left">שמאל</option>
+        </select>
+      </label>
+      <span class="field ip-size">גודל
+        <button id="ipSizeDown" aria-label="הקטנת גופן">A−</button>
+        <button id="ipSizeUp" aria-label="הגדלת גופן">A+</button>
+      </span>
+      <label class="switch"><input type="checkbox" id="ipBoxes"><span class="track"></span>הצגת מסגרות</label>
+    </div>
+    <div class="ip-stagewrap" id="ipWrap">
+      <div class="ip-stage" id="ipStage">
+        <img id="ipImg" alt="התמונה עם שכבת טקסט לעריכה">
+        <div class="ip-layer" id="ipLayer"></div>
+      </div>
+    </div>
+    <p class="ip-hint">לחצו על שורה בתמונה כדי לערוך אותה ישירות במקום. שורה שנערכה מקבלת רקע משוחזר מהתמונה, כך שהמלל המקורי לא ייראה מתחת לטקסט החדש.</p>
   </div>
 </div>
 
@@ -610,7 +713,15 @@ kbd{
     fontSize: 17,
     editingId: null,
     viewerId: null,
-    totalMs: 0
+    totalMs: 0,
+    inplace: {
+      font: "Heebo, Arial, sans-serif",
+      weight: "600",
+      color: "auto",
+      align: "auto",
+      size: 1,
+      boxes: false
+    }
   };
   const blobs = new Map();   // id -> Blob
   const urls = new Map();    // id -> objectURL
@@ -626,11 +737,12 @@ kbd{
           id: d.id, name: d.name, thumb: d.thumb, text: d.text,
           rtl: d.rtl, created: d.created, duration: d.duration, confidence: d.confidence,
           status: d.status === "working" || d.status === "pending" ? (d.text ? "done" : "pending") : d.status,
-          error: d.error || ""
+          error: d.error || "",
+          lines: d.lines || null, dims: d.dims || null
         }));
         localStorage.setItem(LS_KEY, JSON.stringify({
           docs, theme: state.theme, lang: state.lang, preprocess: state.preprocess,
-          fontSize: state.fontSize, totalMs: state.totalMs
+          fontSize: state.fontSize, totalMs: state.totalMs, inplace: state.inplace
         }));
       } catch (e) { /* storage full / disabled */ }
     }, 250);
@@ -642,13 +754,15 @@ kbd{
     try {
       const data = JSON.parse(raw);
       state.docs = (data.docs || []).map(d => Object.assign({
-        status: "done", progress: 0, error: "", thumb: "", text: "", name: "מסמך", rtl: true
+        status: "done", progress: 0, error: "", thumb: "", text: "", name: "מסמך", rtl: true,
+        lines: null, dims: null
       }, d));
       state.theme = data.theme === "dark" ? "dark" : "light";
       if (data.lang) state.lang = data.lang;
       state.preprocess = data.preprocess !== false;
       state.fontSize = data.fontSize || 17;
       state.totalMs = data.totalMs || 0;
+      if (data.inplace) Object.assign(state.inplace, data.inplace);
     } catch (e) {}
   }
 
@@ -723,9 +837,11 @@ kbd{
     if (s < 60) return (s < 10 ? s.toFixed(1) : Math.round(s)) + "s";
     return Math.floor(s / 60) + ":" + String(Math.round(s % 60)).padStart(2, "0");
   }
+  const BIDI = /[\u200e\u200f\u202a-\u202e\u2066-\u2069]/g;
   function tidyText(raw) {
     return String(raw || "")
       .replace(/\r/g, "")
+      .replace(BIDI, "")
       .replace(/\u00a0/g, " ")
       .replace(/[ \t]+\n/g, "\n")
       .replace(/[ \t]{2,}/g, " ")
@@ -849,21 +965,27 @@ kbd{
     toast(files.length === 1 ? "התמונה נוספה — מתחיל תמלול" : files.length + " תמונות נוספו — מתחיל תמלול", { icon: "🖼️" });
   }
 
-  /* ---------------- preprocessing ---------------- */
-  async function prepare(blob) {
+  /* ---------------- image working copy + line boxes ---------------- */
+  const workCache = new Map();
+  async function buildWork(blob, id) {
     const bmp = await createImageBitmap(blob);
     let scale = Math.min(1, MAX_SIDE / Math.max(bmp.width, bmp.height));
     if (bmp.width < 900) scale = Math.min(2, 900 / bmp.width);
     const w = Math.max(1, Math.round(bmp.width * scale));
     const h = Math.max(1, Math.round(bmp.height * scale));
-    const c = document.createElement("canvas");
-    c.width = w; c.height = h;
-    const ctx = c.getContext("2d", { willReadFrequently: true });
-    ctx.drawImage(bmp, 0, 0, w, h);
+    const color = document.createElement("canvas");
+    color.width = w; color.height = h;
+    const cctx = color.getContext("2d", { willReadFrequently: true });
+    cctx.drawImage(bmp, 0, 0, w, h);
     bmp.close && bmp.close();
+    let ocr = color;
     if (state.preprocess) {
+      ocr = document.createElement("canvas");
+      ocr.width = w; ocr.height = h;
+      const octx = ocr.getContext("2d", { willReadFrequently: true });
+      octx.drawImage(color, 0, 0);
       try {
-        const img = ctx.getImageData(0, 0, w, h);
+        const img = octx.getImageData(0, 0, w, h);
         const p = img.data;
         for (let i = 0; i < p.length; i += 4) {
           let g = 0.299 * p[i] + 0.587 * p[i + 1] + 0.114 * p[i + 2];
@@ -871,10 +993,93 @@ kbd{
           g = g < 0 ? 0 : g > 255 ? 255 : g;
           p[i] = p[i + 1] = p[i + 2] = g;
         }
-        ctx.putImageData(img, 0, 0);
+        octx.putImageData(img, 0, 0);
       } catch (e) {}
     }
-    return c;
+    const work = { color, ocr, w, h };
+    if (id) {
+      workCache.set(id, work);
+      while (workCache.size > 3) workCache.delete(workCache.keys().next().value);
+    }
+    return work;
+  }
+  async function getWork(doc) {
+    if (workCache.has(doc.id)) return workCache.get(doc.id);
+    let blob = blobs.get(doc.id);
+    if (!blob) { blob = await idbGet(doc.id); if (blob) blobs.set(doc.id, blob); }
+    if (!blob) throw new Error("התמונה כבר לא זמינה — העלו אותה שוב");
+    return buildWork(blob, doc.id);
+  }
+  function extractLines(data, work) {
+    const out = [];
+    const push = l => {
+      if (!l || !l.bbox) return;
+      const t = String(l.text || "").replace(BIDI, "").replace(/\s+/g, " ").trim();
+      if (!t) return;
+      const b = l.bbox;
+      const w = Math.max(1, b.x1 - b.x0);
+      const h = Math.max(1, b.y1 - b.y0);
+      if (w < 5 || h < 5) return;
+      out.push({
+        t, o: t,
+        x: Math.min(b.x0, work.w - 1), y: Math.min(b.y0, work.h - 1),
+        w: Math.min(w, work.w), h: Math.min(h, work.h),
+        conf: Math.round(l.confidence || 0),
+        dir: isRtl(t) ? "rtl" : "ltr",
+        color: "#111111", bg1: "#ffffff", bg2: "#ffffff"
+      });
+    };
+    if (Array.isArray(data.blocks)) {
+      data.blocks.forEach(b => (b.paragraphs || []).forEach(p => (p.lines || []).forEach(push)));
+    } else if (Array.isArray(data.lines)) {
+      data.lines.forEach(push);
+    }
+    sampleLineColors(out, work.color);
+    return out;
+  }
+  function rgb(c) { return "rgb(" + c[0] + "," + c[1] + "," + c[2] + ")"; }
+  function avgRegion(ctx, x, y, w, h) {
+    const cw = ctx.canvas.width, ch = ctx.canvas.height;
+    const x0 = Math.max(0, Math.round(x)), y0 = Math.max(0, Math.round(y));
+    const x1 = Math.min(cw, Math.round(x + w)), y1 = Math.min(ch, Math.round(y + h));
+    if (x1 - x0 < 1 || y1 - y0 < 1) return null;
+    let r = 0, g = 0, b = 0, n = 0;
+    try {
+      const d = ctx.getImageData(x0, y0, x1 - x0, y1 - y0).data;
+      const step = Math.max(4, Math.floor(d.length / 4000 / 4) * 4);
+      for (let i = 0; i < d.length; i += step) { r += d[i]; g += d[i + 1]; b += d[i + 2]; n++; }
+    } catch (e) { return null; }
+    if (!n) return null;
+    return [Math.round(r / n), Math.round(g / n), Math.round(b / n)];
+  }
+  function sampleLineColors(lines, canvas) {
+    if (!canvas || !lines.length) return;
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    lines.forEach(ln => {
+      try {
+        const pad = Math.max(2, Math.round(ln.h * 0.16));
+        const top = avgRegion(ctx, ln.x, ln.y - pad, ln.w, pad);
+        const bot = avgRegion(ctx, ln.x, ln.y + ln.h, ln.w, pad);
+        const bg = top || bot;
+        if (top) ln.bg1 = rgb(top);
+        if (bot) ln.bg2 = rgb(bot);
+        if (!bg) return;
+        const bgLum = 0.299 * bg[0] + 0.587 * bg[1] + 0.114 * bg[2];
+        const box = ctx.getImageData(
+          Math.max(0, Math.round(ln.x)), Math.max(0, Math.round(ln.y)),
+          Math.max(1, Math.min(Math.round(ln.w), canvas.width)),
+          Math.max(1, Math.min(Math.round(ln.h), canvas.height))
+        ).data;
+        let r = 0, g = 0, b = 0, n = 0;
+        for (let i = 0; i < box.length; i += 4) {
+          const lum = 0.299 * box[i] + 0.587 * box[i + 1] + 0.114 * box[i + 2];
+          const isInk = bgLum > 130 ? lum < bgLum - 55 : lum > bgLum + 45;
+          if (isInk) { r += box[i]; g += box[i + 1]; b += box[i + 2]; n++; }
+        }
+        if (n > 12) ln.color = rgb([Math.round(r / n), Math.round(g / n), Math.round(b / n)]);
+        else ln.color = bgLum > 130 ? "#111111" : "#ffffff";
+      } catch (e) {}
+    });
   }
 
   /* ---------------- OCR queue ---------------- */
@@ -901,13 +1106,17 @@ kbd{
     try {
       let blob = blobs.get(doc.id) || await idbGet(doc.id);
       if (!blob) throw new Error("התמונה כבר לא זמינה — העלו אותה שוב");
-      const input = await prepare(blob);
+      blobs.set(doc.id, blob);
+      const work = await buildWork(blob, doc.id);
+      doc.dims = { w: work.w, h: work.h };
       const w = await getWorker();
       state.processingId = doc.id;
-      const res = await w.recognize(input);
-      const text = tidyText(res && res.data ? res.data.text : "");
-      doc.text = text || "";
-      doc.confidence = res && res.data ? Math.round(res.data.confidence || 0) : null;
+      const res = await w.recognize(work.ocr, {}, { blocks: true });
+      const data = (res && res.data) || {};
+      const text = tidyText(data.text || "");
+      doc.lines = extractLines(data, work);
+      doc.text = text || doc.lines.map(l => l.t).join("\n");
+      doc.confidence = Math.round(data.confidence || 0);
       doc.status = "done"; doc.progress = 100; doc.stage = "הושלם";
       doc.rtl = isRtl(doc.text);
       doc.duration = performance.now() - t0;
@@ -1026,9 +1235,11 @@ kbd{
             '<div class="card-actions">' +
               '<button class="act" data-act="copy" title="העתקת הטקסט">העתקה</button>' +
               '<button class="act" data-act="edit" title="עריכה">✏️ עריכה</button>' +
+              '<button class="act primary-act" data-act="inplace" title="עריכת הטקסט ישירות על התמונה">✏️ על התמונה</button>' +
               '<button class="act icon" data-act="image" title="הצגת התמונה">🖼️</button>' +
               '<details class="menu"><summary class="act icon" title="עוד פעולות">⋯</summary>' +
                 '<div class="menu-panel">' +
+                  '<button data-act="inplace">🖼️ עריכה על התמונה</button>' +
                   '<button data-act="copy">📋 העתקת הטקסט</button>' +
                   '<button data-act="paragraphs">↩︎ איחוד שורות לפסקה</button>' +
                   '<button data-act="tidy">🧹 ניקוי רווחים ושורות ריקות</button>' +
@@ -1175,6 +1386,171 @@ kbd{
     toast("מייצא…", { icon: "⤓" });
   }
 
+  /* ---------------- in-place editor ---------------- */
+  const ip = { doc: null, work: null, scale: 1, open: false };
+
+  function ipLineStyle(el, ln) {
+    const s = state.inplace;
+    const rtl = (ln.dir || "rtl") === "rtl";
+    const align = s.align === "auto" ? (rtl ? "right" : "left") : s.align;
+    el.style.setProperty("--fg", s.color === "auto" ? (ln.color || "#111111") : s.color);
+    el.style.setProperty("--bg1", ln.bg1 || "#ffffff");
+    el.style.setProperty("--bg2", ln.bg2 || "#ffffff");
+    el.style.fontFamily = s.font;
+    el.style.fontWeight = s.weight;
+    el.style.fontSize = Math.max(6, ln.h * 0.8 * s.size) + "px";
+    el.style.justifyContent = align === "center" ? "center" : ((align === "right") === rtl ? "flex-start" : "flex-end");
+    el.style.textAlign = align;
+  }
+  function ipFitText(el, ln) {
+    const base = Math.max(6, ln.h * 0.8 * state.inplace.size);
+    el.style.fontSize = base + "px";
+    let size = base, guard = 0;
+    while (el.scrollWidth > el.clientWidth + 1 && size > base * 0.55 && guard++ < 40) {
+      size *= 0.94;
+      el.style.fontSize = size.toFixed(2) + "px";
+    }
+  }
+  function ipPlace(el, ln) {
+    const padX = Math.max(1, ln.h * 0.07);
+    const padY = Math.max(1, ln.h * 0.08);
+    el.style.left = Math.round(ln.x - padX) + "px";
+    el.style.top = Math.round(ln.y - padY) + "px";
+    el.style.width = Math.round(ln.w + padX * 2) + "px";
+    el.style.height = Math.round(ln.h + padY * 2) + "px";
+    ipLineStyle(el, ln);
+    ipFitText(el, ln);
+  }
+  function ipFit() {
+    if (!ip.work) return;
+    const wrap = $("#ipWrap");
+    const avail = Math.max(220, (wrap.clientWidth || 800) - 26);
+    ip.scale = Math.min(1, avail / ip.work.w);
+    const stage = $("#ipStage");
+    stage.style.width = Math.round(ip.work.w * ip.scale) + "px";
+    stage.style.height = Math.round(ip.work.h * ip.scale) + "px";
+    $("#ipLayer").style.transform = "scale(" + ip.scale + ")";
+  }
+  function ipBuild() {
+    const layer = $("#ipLayer");
+    const doc = ip.doc, work = ip.work;
+    if (!doc || !work) return;
+    layer.innerHTML = "";
+    layer.style.width = work.w + "px";
+    layer.style.height = work.h + "px";
+    doc.lines.forEach((ln, i) => {
+      const el = document.createElement("div");
+      el.className = "iline" + (ln.t !== ln.o ? " dirty" : "");
+      el.dataset.i = i;
+      el.setAttribute("contenteditable", "true");
+      el.setAttribute("spellcheck", "false");
+      el.setAttribute("dir", ln.dir || "rtl");
+      el.textContent = ln.t;
+      ipPlace(el, ln);
+      layer.appendChild(el);
+    });
+    ipFit();
+    $("#ipStage").classList.toggle("boxes", !!state.inplace.boxes);
+  }
+  async function openInPlace(id) {
+    const doc = getDoc(id);
+    if (!doc) return;
+    if (!doc.lines || !doc.lines.length) {
+      toast("אין נתוני מיקום לשורות — תמללו את התמונה מחדש כדי לערוך עליה", { icon: "ℹ️", life: 5200 });
+      return;
+    }
+    let work;
+    try { work = await getWork(doc); }
+    catch (e) { toast("התמונה לא זמינה יותר — העלו אותה שוב", { icon: "⚠️" }); return; }
+    ip.doc = doc; ip.work = work; ip.open = true;
+    $("#ipName").textContent = doc.name;
+    let url = urls.get(doc.id);
+    if (!url) {
+      const b = blobs.get(doc.id) || await idbGet(doc.id);
+      if (b) { blobs.set(doc.id, b); url = URL.createObjectURL(b); urls.set(doc.id, url); }
+    }
+    $("#ipImg").src = url || work.color.toDataURL("image/jpeg", 0.92);
+    syncIpControls();
+    ipBuild();
+    $("#inplace").hidden = false;
+    ipFit();
+    setTimeout(ipFit, 80);
+  }
+  function closeInPlace() {
+    if (!ip.open) return;
+    const doc = ip.doc;
+    if (doc && doc.lines && doc.lines.some(l => l.t !== l.o)) {
+      doc.text = doc.lines.map(l => l.t).filter(t => t.trim()).join("\n");
+      doc.rtl = isRtl(doc.text);
+    }
+    ip.open = false; ip.doc = null; ip.work = null;
+    $("#inplace").hidden = true;
+    save(); render();
+  }
+  function syncIpControls() {
+    const s = state.inplace;
+    $("#ipFont").value = s.font;
+    $("#ipWeight").value = s.weight;
+    $("#ipColor").value = s.color;
+    $("#ipAlign").value = s.align;
+    $("#ipBoxes").checked = !!s.boxes;
+  }
+  function refreshIpStyles() {
+    if (!ip.doc) return;
+    $$(".iline", $("#ipLayer")).forEach(el => {
+      const ln = ip.doc.lines[Number(el.dataset.i)];
+      if (ln) { ipLineStyle(el, ln); ipFitText(el, ln); }
+    });
+  }
+  function exportEditedImage() {
+    if (!ip.doc || !ip.work) return;
+    const doc = ip.doc, work = ip.work, s = state.inplace;
+    const out = document.createElement("canvas");
+    out.width = work.w; out.height = work.h;
+    const ctx = out.getContext("2d");
+    ctx.drawImage(work.color, 0, 0);
+    doc.lines.forEach(ln => {
+      if (ln.t === ln.o) return;
+      const padX = Math.max(2, ln.h * 0.1), padY = Math.max(2, ln.h * 0.12);
+      const g = ctx.createLinearGradient(0, ln.y - padY, 0, ln.y + ln.h + padY);
+      g.addColorStop(0, ln.bg1 || "#ffffff");
+      g.addColorStop(1, ln.bg2 || "#ffffff");
+      ctx.fillStyle = g;
+      ctx.fillRect(ln.x - padX, ln.y - padY, ln.w + padX * 2, ln.h + padY * 2);
+      const text = (ln.t || "").trim();
+      if (!text) return;
+      const rtl = (ln.dir || "rtl") === "rtl";
+      const align = s.align === "auto" ? (rtl ? "right" : "left") : s.align;
+      const base = Math.max(7, ln.h * 0.8 * s.size);
+      ctx.font = s.weight + " " + base + "px " + s.font;
+      let size = base;
+      const measured = ctx.measureText(text).width;
+      if (measured > ln.w && measured > 0) size = Math.max(base * 0.55, base * (ln.w / measured));
+      if (size !== base) ctx.font = s.weight + " " + size + "px " + s.font;
+      ctx.fillStyle = s.color === "auto" ? (ln.color || "#111111") : s.color;
+      ctx.textBaseline = "middle";
+      ctx.textAlign = align;
+      ctx.direction = rtl ? "rtl" : "ltr";
+      const x = align === "right" ? ln.x + ln.w : align === "center" ? ln.x + ln.w / 2 : ln.x;
+      ctx.fillText(text, x, ln.y + ln.h * 0.56);
+    });
+    out.toBlob(blob => {
+      if (!blob) { toast("ייצוא התמונה נכשל", { icon: "⚠️" }); return; }
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = (doc.name || "image").replace(/[\\/:*?"<>|]/g, "-") + "-edited.png";
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 6000);
+      toast("התמונה הערוכה ירדה כקובץ PNG", { icon: "⤓" });
+    }, "image/png");
+  }
+  function resetInPlace() {
+    if (!ip.doc) return;
+    ip.doc.lines.forEach(l => l.t = l.o);
+    ipBuild(); save();
+    toast("כל השינויים בעורך בוטלו", { icon: "↺" });
+  }
+
   /* ---------------- viewer ---------------- */
   let viewRot = 0, viewZoom = 1;
   async function openViewer(id) {
@@ -1316,6 +1692,7 @@ kbd{
       if (act === "image") { openViewer(id); return; }
       if (!act) return;
       if (act === "copy") copyText(doc.text || "", "הטקסט הועתק");
+      else if (act === "inplace") openInPlace(id);
       else if (act === "edit") startEdit(id);
       else if (act === "save" || act === "cancel") { endEdit(); }
       else if (act === "delete") deleteDoc(id);
@@ -1340,6 +1717,52 @@ kbd{
     });
     listEl.addEventListener("keydown", e => {
       if (e.key === "Enter" && e.target.matches('[data-role="name"]')) { e.target.blur(); }
+    });
+
+    // in-place editor
+    $("#ipClose").onclick = closeInPlace;
+    $("#inplace").addEventListener("click", e => { if (e.target.id === "inplace") closeInPlace(); });
+    $("#ipExport").onclick = exportEditedImage;
+    $("#ipReset").onclick = resetInPlace;
+    $("#ipCopy").onclick = () => {
+      if (!ip.doc) return;
+      copyText(ip.doc.lines.map(l => l.t).filter(Boolean).join("\n"), "הטקסט הועתק");
+    };
+    $("#ipFont").onchange = e => { state.inplace.font = e.target.value; refreshIpStyles(); save(); };
+    $("#ipWeight").onchange = e => { state.inplace.weight = e.target.value; refreshIpStyles(); save(); };
+    $("#ipColor").onchange = e => { state.inplace.color = e.target.value; refreshIpStyles(); save(); };
+    $("#ipAlign").onchange = e => { state.inplace.align = e.target.value; refreshIpStyles(); save(); };
+    $("#ipSizeUp").onclick = () => { state.inplace.size = Math.min(2, state.inplace.size + 0.08); refreshIpStyles(); save(); };
+    $("#ipSizeDown").onclick = () => { state.inplace.size = Math.max(0.5, state.inplace.size - 0.08); refreshIpStyles(); save(); };
+    $("#ipBoxes").onchange = e => {
+      state.inplace.boxes = e.target.checked;
+      $("#ipStage").classList.toggle("boxes", !!state.inplace.boxes);
+      save();
+    };
+    window.addEventListener("resize", () => { if (ip.open) ipFit(); });
+    if (window.ResizeObserver) {
+      new ResizeObserver(() => { if (ip.open) ipFit(); }).observe($("#ipWrap"));
+    }
+
+    const ipLayer = $("#ipLayer");
+    ipLayer.addEventListener("input", e => {
+      const el = e.target.closest && e.target.closest(".iline");
+      if (!el || !ip.doc) return;
+      const ln = ip.doc.lines[Number(el.dataset.i)];
+      if (!ln) return;
+      ln.t = el.textContent.replace(/\s*\n+\s*/g, " ");
+      el.classList.toggle("dirty", ln.t !== ln.o);
+      ipFitText(el, ln);
+      save();
+    });
+    ipLayer.addEventListener("keydown", e => {
+      if (e.key === "Enter") { e.preventDefault(); e.target.blur(); }
+      else if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); e.target.blur(); }
+    });
+    ipLayer.addEventListener("paste", e => {
+      e.preventDefault();
+      const raw = (e.clipboardData && e.clipboardData.getData) ? e.clipboardData.getData("text") : "";
+      document.execCommand("insertText", false, (raw || "").replace(/\s*\n+\s*/g, " "));
     });
 
     // viewer
@@ -1371,7 +1794,8 @@ kbd{
       else if (meta && e.shiftKey && e.key.toLowerCase() === "c") { e.preventDefault(); copyText(allText(), "כל הטקסט הועתק"); }
       else if (meta && e.key.toLowerCase() === "s") { e.preventDefault(); exportAs("txt"); }
       else if (e.key === "Escape") {
-        if (!$("#viewer").hidden) closeViewer();
+        if (!$("#inplace").hidden) closeInPlace();
+        else if (!$("#viewer").hidden) closeViewer();
         else if (!$("#help").hidden) $("#help").hidden = true;
         else if (!$("#confirm").hidden) $("#confirm").hidden = true;
         else if (state.editingId) endEdit();
