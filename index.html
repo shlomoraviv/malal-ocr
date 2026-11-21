@@ -377,7 +377,7 @@ kbd{
   padding:0 1px;transition:background .12s ease;
 }
 .iline:hover{border-color:rgba(129,140,248,.75);background:color-mix(in srgb,var(--brand1) 14%,transparent)}
-.iline.dirty,.iline:focus{color:var(--fg,#111);background:linear-gradient(180deg,var(--bg1,#fff),var(--bg2,#fff));border-color:transparent}
+.iline.dirty,.iline:focus{color:var(--fg,#111);background-color:transparent;background-image:var(--patch,linear-gradient(180deg,var(--bg1,#fff),var(--bg2,#fff)));background-size:100% 100%;background-repeat:no-repeat;border-color:transparent}
 .iline:focus{outline:2px solid rgba(99,102,241,.8);outline-offset:1px;z-index:3}
 .ip-stage.boxes .iline{border-color:rgba(129,140,248,.5)}
 .ip-empty{padding:26px;color:#c7ccdd;font-size:14px;text-align:center}
@@ -689,7 +689,7 @@ kbd{
         <div class="ip-layer" id="ipLayer"></div>
       </div>
     </div>
-    <p class="ip-hint">לחצו על שורה בתמונה כדי לערוך אותה ישירות במקום. שורה שנערכה מקבלת רקע משוחזר מהתמונה, כך שהמלל המקורי לא ייראה מתחת לטקסט החדש.</p>
+    <p class="ip-hint">לחצו על שורה בתמונה כדי לערוך אותה ישירות במקום. מאחורי השורה שנערכה משוחזרים רק פיקסלי האותיות — הרקע שמסביבן נשאר מקורי, כך שגם תמונה או דוגמה ממשיכות ברצף בלי מלבן צבוע.</p>
   </div>
 </div>
 
@@ -1082,6 +1082,233 @@ kbd{
     });
   }
 
+  /* ---------------- background reconstruction (content-aware fill) ---------------- */
+  const patchCache = new Map();   // docId -> Map(lineIndex -> patch)
+
+  // rectangle a line occupies in the working image (shared by the layer + the patch)
+  function ipRect(ln) {
+    const padX = Math.max(1, ln.h * 0.07), padY = Math.max(1, ln.h * 0.08);
+    const left = Math.round(ln.x - padX), top = Math.round(ln.y - padY);
+    const right = Math.round(ln.x + ln.w + padX), bottom = Math.round(ln.y + ln.h + padY);
+    return { x: left, y: top, w: Math.max(3, right - left), h: Math.max(3, bottom - top) };
+  }
+
+  // Mask only the glyph pixels (not the whole rectangle): the base is a per-column
+  // background estimate, so a horizontal gradient or photo behind the line is not
+  // mistaken for ink. The mask is then grown 2px to swallow the anti-aliased halo.
+  function medianOf(arr) {
+    const a = arr.slice().sort((x, y) => x - y);
+    return a[a.length >> 1];
+  }
+  function smoothMed(vals, win) {
+    const k = Math.floor(win / 2), out = new Float32Array(vals.length), buf = [];
+    for (let i = 0; i < vals.length; i++) {
+      buf.length = 0;
+      for (let j = i - k; j <= i + k; j++) { const jj = j < 0 ? 0 : j >= vals.length ? vals.length - 1 : j; buf.push(vals[jj]); }
+      out[i] = medianOf(buf);
+    }
+    return out;
+  }
+
+  function rgbLum(str) {
+    const m = /rgba?\(\s*(\d+)[,\s]+(\d+)[,\s]+(\d+)/.exec(String(str || ""));
+    return m ? 0.299 * +m[1] + 0.587 * +m[2] + 0.114 * +m[3] : null;
+  }
+
+  function inkMask(p, w, h, ln, limitScale) {
+    const n = w * h;
+    const ls = limitScale || 1;
+    const lum = new Float32Array(n);
+    for (let i = 0, j = 0; j < n; i += 4, j++) lum[j] = 0.299 * p[i] + 0.587 * p[i + 1] + 0.114 * p[i + 2];
+    const sorted = Array.from(lum).sort((a, b) => a - b);
+    const at = q => sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * q))];
+    const spread = at(0.96) - at(0.04);
+    const limit = Math.min(70, Math.max(18, spread * 0.32)) * ls;
+    // Background model per column and row: a high percentile (dark ink) or a low one
+    // (light ink), taking the safer of the two axes. A column running through a thick
+    // stroke still holds background above and below the glyph, so it stays at
+    // background level. Both polarities are built, then the one that explains more of
+    // the region as background wins — the background always covers more area.
+    const curve = (pick) => {
+      const cols = new Float32Array(w), rows = new Float32Array(h), tmp = [];
+      for (let x = 0; x < w; x++) { tmp.length = 0; for (let y = 0; y < h; y++) tmp.push(lum[y * w + x]); tmp.sort((a, b) => a - b); cols[x] = tmp[Math.min(tmp.length - 1, Math.floor(tmp.length * pick))]; }
+      for (let y = 0; y < h; y++) { tmp.length = 0; for (let x = 0; x < w; x++) tmp.push(lum[y * w + x]); tmp.sort((a, b) => a - b); rows[y] = tmp[Math.min(tmp.length - 1, Math.floor(tmp.length * pick))]; }
+      return {
+        cols: smoothMed(cols, Math.max(5, (Math.round(w / 12) | 1))),
+        rows: smoothMed(rows, Math.max(5, (Math.round(h / 6) | 1)))
+      };
+    };
+    const darkCurve = curve(0.9), lightCurve = curve(0.1);
+    const bgAt = (c, x, y, dark) => dark ? Math.min(c.cols[x], c.rows[y]) : Math.max(c.cols[x], c.rows[y]);
+    // polarity from the line's sampled ink/background colours when they are usable,
+    // otherwise from whichever hypothesis explains more of the region as background
+    let darkInk = null;
+    const inkL = rgbLum(ln && ln.color), bgL = rgbLum(ln && ln.bg1);
+    if (inkL !== null && bgL !== null && Math.abs(inkL - bgL) > 30) darkInk = inkL < bgL;
+    if (darkInk === null) {
+      let darkScore = 0, lightScore = 0;
+      for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+        const v = lum[y * w + x];
+        if (bgAt(darkCurve, x, y, true) - v <= limit) darkScore++;
+        if (v - bgAt(lightCurve, x, y, false) <= limit) lightScore++;
+      }
+      darkInk = darkScore >= lightScore;
+    }
+    const curveSel = darkInk ? darkCurve : lightCurve;
+    const mask = new Uint8Array(n);
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      const bg = bgAt(curveSel, x, y, darkInk);
+      const dev = darkInk ? bg - lum[y * w + x] : lum[y * w + x] - bg;
+      if (dev > limit) mask[y * w + x] = 1;
+    }
+    let src = mask;
+    for (let pass = 0; pass < 2; pass++) {
+      const out = new Uint8Array(src);
+      for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+        if (src[y * w + x]) continue;
+        let hit = false;
+        for (let dy = -1; dy <= 1 && !hit; dy++) for (let dx = -1; dx <= 1; dx++) {
+          const xx = x + dx, yy = y + dy;
+          if (xx < 0 || xx >= w || yy < 0 || yy >= h) continue;
+          if (src[yy * w + xx]) { hit = true; break; }
+        }
+        if (hit) out[y * w + x] = 1;
+      }
+      src = out;
+    }
+    return src;
+  }
+
+  // Fill the masked pixels: harmonic diffusion (seamless with the surrounding colours)
+  // blended with texture reflected across the nearest mask edge (keeps grain/pattern).
+  function inpaintRegion(p, mask, w, h) {
+    const n = w * h;
+    let holes = 0;
+    for (let i = 0; i < n; i++) if (mask[i]) holes++;
+    if (!holes) return false;
+    const INF = 1 << 28;
+    const dist = new Int32Array(n).fill(INF);
+    const sx = new Int32Array(n), sy = new Int32Array(n);
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      const i = y * w + x;
+      if (!mask[i]) { dist[i] = 0; sx[i] = x; sy[i] = y; }
+    }
+    const relax = (i, j, wgt) => {
+      const d = dist[j] + wgt;
+      if (d < dist[i]) { dist[i] = d; sx[i] = sx[j]; sy[i] = sy[j]; }
+    };
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      const i = y * w + x;
+      if (!dist[i]) continue;
+      if (x > 0) relax(i, i - 1, 3);
+      if (y > 0) relax(i, i - w, 3);
+      if (x > 0 && y > 0) relax(i, i - w - 1, 4);
+      if (x < w - 1 && y > 0) relax(i, i - w + 1, 4);
+    }
+    for (let y = h - 1; y >= 0; y--) for (let x = w - 1; x >= 0; x--) {
+      const i = y * w + x;
+      if (!dist[i]) continue;
+      if (x < w - 1) relax(i, i + 1, 3);
+      if (y < h - 1) relax(i, i + w, 3);
+      if (x < w - 1 && y < h - 1) relax(i, i + w + 1, 4);
+      if (x > 0 && y < h - 1) relax(i, i + w - 1, 4);
+    }
+    // seed with the nearest known pixel, then diffuse
+    const buf = new Float32Array(n * 3);
+    let seeded = 0, r = 0, g = 0, b = 0;
+    for (let i = 0; i < n; i++) {
+      const s = (dist[i] === INF ? null : sy[i] * w + sx[i]);
+      if (s === null) continue;
+      buf[i * 3] = p[s * 4]; buf[i * 3 + 1] = p[s * 4 + 1]; buf[i * 3 + 2] = p[s * 4 + 2];
+      seeded++; r += p[s * 4]; g += p[s * 4 + 1]; b += p[s * 4 + 2];
+    }
+    if (!seeded) return false;
+    const tmp = new Float32Array(buf.length);
+    for (let it = 0; it < 34; it++) {
+      tmp.set(buf);
+      for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+        const i = y * w + x;
+        if (!mask[i]) continue;
+        let rr = 0, gg = 0, bb = 0, c = 0;
+        if (x > 0) { const j = (i - 1) * 3; rr += tmp[j]; gg += tmp[j + 1]; bb += tmp[j + 2]; c++; }
+        if (x < w - 1) { const j = (i + 1) * 3; rr += tmp[j]; gg += tmp[j + 1]; bb += tmp[j + 2]; c++; }
+        if (y > 0) { const j = (i - w) * 3; rr += tmp[j]; gg += tmp[j + 1]; bb += tmp[j + 2]; c++; }
+        if (y < h - 1) { const j = (i + w) * 3; rr += tmp[j]; gg += tmp[j + 1]; bb += tmp[j + 2]; c++; }
+        if (!c) continue;
+        buf[i * 3] = rr / c; buf[i * 3 + 1] = gg / c; buf[i * 3 + 2] = bb / c;
+      }
+    }
+    // blend in reflected texture where it plausibly matches the diffused colour
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      const i = y * w + x;
+      if (!mask[i]) continue;
+      let nr = buf[i * 3], ng = buf[i * 3 + 1], nb = buf[i * 3 + 2];
+      const rx = 2 * sx[i] - x, ry = 2 * sy[i] - y;
+      if (rx >= 0 && rx < w && ry >= 0 && ry < h) {
+        const ri = ry * w + rx;
+        if (!mask[ri]) {
+          const rr = p[ri * 4], gg = p[ri * 4 + 1], bb = p[ri * 4 + 2];
+          const delta = Math.abs(rr - nr) + Math.abs(gg - ng) + Math.abs(bb - nb);
+          const wgt = delta > 120 ? 0 : 0.55 * (1 - delta / 120);
+          nr += (rr - nr) * wgt; ng += (gg - ng) * wgt; nb += (bb - nb) * wgt;
+        }
+      }
+      p[i * 4] = nr; p[i * 4 + 1] = ng; p[i * 4 + 2] = nb; p[i * 4 + 3] = 255;
+    }
+    return true;
+  }
+
+  function buildPatch(work, ln) {
+    const rect = ipRect(ln);
+    const x0 = Math.max(0, rect.x), y0 = Math.max(0, rect.y);
+    const x1 = Math.min(work.w, rect.x + rect.w), y1 = Math.min(work.h, rect.y + rect.h);
+    const w = x1 - x0, h = y1 - y0;
+    if (w < 4 || h < 4) return null;
+    const src = work.color.getContext("2d", { willReadFrequently: true });
+    let img;
+    try { img = src.getImageData(x0, y0, w, h); } catch (e) { return null; }
+    const data = new Uint8ClampedArray(img.data);
+    const need = Math.max(6, Math.round(w * h * 0.004));
+    let mask = inkMask(data, w, h, ln, 1);
+    let holes = 0;
+    for (let i = 0; i < mask.length; i++) if (mask[i]) { holes++; }
+    if (holes < need) {
+      mask = inkMask(data, w, h, ln, 0.55);
+      holes = 0;
+      for (let i = 0; i < mask.length; i++) if (mask[i]) holes++;
+    }
+    if (holes < need) {
+      // last resort: repair the whole box rather than leave a painted-in flat colour
+      mask = new Uint8Array(w * h);
+      for (let y = 1; y < h - 1; y++) for (let x = 1; x < w - 1; x++) mask[y * w + x] = 1;
+    }
+    if (!inpaintRegion(data, mask, w, h)) return null;
+    const cv = document.createElement("canvas");
+    cv.width = w; cv.height = h;
+    const cx = cv.getContext("2d");
+    const out = cx.createImageData(w, h);
+    out.data.set(data);
+    cx.putImageData(out, 0, 0);
+    return { canvas: cv, x: x0, y: y0, w: w, h: h, url: cv.toDataURL("image/png") };
+  }
+
+  function patchFor(doc, work, index) {
+    let map = patchCache.get(doc.id);
+    const key = work.w + "x" + work.h;
+    if (!map || map.key !== key) { map = new Map(); map.key = key; patchCache.set(doc.id, map); }
+    if (map.has(index)) return map.get(index);
+    const patch = buildPatch(work, doc.lines[index]);
+    map.set(index, patch);
+    return patch;
+  }
+
+  function applyPatchTo(el, ln, index, force) {
+    if (!ip.doc || !ip.work || !ln) return;
+    if (!force && ln.t === ln.o) { el.style.removeProperty("--patch"); return; }
+    const patch = patchFor(ip.doc, ip.work, index);
+    if (patch) el.style.setProperty("--patch", 'url("' + patch.url + '")');
+  }
+
   /* ---------------- OCR queue ---------------- */
   const queue = [];
   let pumping = false;
@@ -1412,12 +1639,11 @@ kbd{
     }
   }
   function ipPlace(el, ln) {
-    const padX = Math.max(1, ln.h * 0.07);
-    const padY = Math.max(1, ln.h * 0.08);
-    el.style.left = Math.round(ln.x - padX) + "px";
-    el.style.top = Math.round(ln.y - padY) + "px";
-    el.style.width = Math.round(ln.w + padX * 2) + "px";
-    el.style.height = Math.round(ln.h + padY * 2) + "px";
+    const rect = ipRect(ln);
+    el.style.left = rect.x + "px";
+    el.style.top = rect.y + "px";
+    el.style.width = rect.w + "px";
+    el.style.height = rect.h + "px";
     ipLineStyle(el, ln);
     ipFitText(el, ln);
   }
@@ -1447,6 +1673,7 @@ kbd{
       el.setAttribute("dir", ln.dir || "rtl");
       el.textContent = ln.t;
       ipPlace(el, ln);
+      if (ln.t !== ln.o) applyPatchTo(el, ln, i);
       layer.appendChild(el);
     });
     ipFit();
@@ -1509,14 +1736,19 @@ kbd{
     out.width = work.w; out.height = work.h;
     const ctx = out.getContext("2d");
     ctx.drawImage(work.color, 0, 0);
-    doc.lines.forEach(ln => {
+    doc.lines.forEach((ln, index) => {
       if (ln.t === ln.o) return;
-      const padX = Math.max(2, ln.h * 0.1), padY = Math.max(2, ln.h * 0.12);
-      const g = ctx.createLinearGradient(0, ln.y - padY, 0, ln.y + ln.h + padY);
-      g.addColorStop(0, ln.bg1 || "#ffffff");
-      g.addColorStop(1, ln.bg2 || "#ffffff");
-      ctx.fillStyle = g;
-      ctx.fillRect(ln.x - padX, ln.y - padY, ln.w + padX * 2, ln.h + padY * 2);
+      const patch = patchFor(doc, work, index);
+      if (patch) {
+        ctx.drawImage(patch.canvas, patch.x, patch.y);
+      } else {
+        const rect = ipRect(ln);
+        const g = ctx.createLinearGradient(0, rect.y, 0, rect.y + rect.h);
+        g.addColorStop(0, ln.bg1 || "#ffffff");
+        g.addColorStop(1, ln.bg2 || "#ffffff");
+        ctx.fillStyle = g;
+        ctx.fillRect(rect.x, rect.y, rect.w, rect.h);
+      }
       const text = (ln.t || "").trim();
       if (!text) return;
       const rtl = (ln.dir || "rtl") === "rtl";
@@ -1751,7 +1983,10 @@ kbd{
       const ln = ip.doc.lines[Number(el.dataset.i)];
       if (!ln) return;
       ln.t = el.textContent.replace(/\s*\n+\s*/g, " ");
+      const idx = Number(el.dataset.i);
       el.classList.toggle("dirty", ln.t !== ln.o);
+      if (ln.t !== ln.o) applyPatchTo(el, ln, idx);
+      else el.style.removeProperty("--patch");
       ipFitText(el, ln);
       save();
     });
@@ -1763,6 +1998,18 @@ kbd{
       e.preventDefault();
       const raw = (e.clipboardData && e.clipboardData.getData) ? e.clipboardData.getData("text") : "";
       document.execCommand("insertText", false, (raw || "").replace(/\s*\n+\s*/g, " "));
+    });
+    ipLayer.addEventListener("focusin", e => {
+      const el = e.target.closest && e.target.closest(".iline");
+      if (!el || !ip.doc) return;
+      const idx = Number(el.dataset.i);
+      applyPatchTo(el, ip.doc.lines[idx], idx, true);
+    });
+    ipLayer.addEventListener("focusout", e => {
+      const el = e.target.closest && e.target.closest(".iline");
+      if (!el || !ip.doc) return;
+      const ln = ip.doc.lines[Number(el.dataset.i)];
+      if (ln && ln.t === ln.o) el.style.removeProperty("--patch");
     });
 
     // viewer
