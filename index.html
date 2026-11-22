@@ -9,7 +9,7 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%236366f1'/%3E%3Ctext x='32' y='44' font-size='34' font-family='Arial' font-weight='bold' text-anchor='middle' fill='white'%3E%D7%9E%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800&family=Rubik:wght@400;500;600;700&family=Assistant:wght@400;600;700&family=Noto+Sans+Hebrew:wght@400;500;700&family=Frank+Ruhl+Libre:wght@400;500;700;900&family=David+Libre:wght@400;700&family=Secular+One&family=Suez+One&family=Varela+Round&family=Alef:wght@400;700&display=swap" rel="stylesheet">
 <style>
 :root{
   --brand1:#6366f1; --brand2:#a855f7; --brand3:#ec4899;
@@ -236,6 +236,8 @@ h1 .grad{
 .doc-name:focus{outline:none;border-color:color-mix(in srgb,var(--brand1) 45%,transparent);background:var(--panel-soft);box-shadow:0 0 0 3px color-mix(in srgb,var(--brand1) 10%,transparent)}
 .meta{display:flex;gap:6px;flex-wrap:wrap;font-size:11.5px;color:var(--muted)}
 .chip{padding:3px 9px;border-radius:999px;background:var(--bg2);white-space:nowrap}
+.chip.warn{background:color-mix(in srgb,#f59e0b 22%,transparent);color:#8a5a00;font-weight:700}
+html[data-theme="dark"] .chip.warn{color:#fbbf24}
 .card-actions{display:flex;gap:4px;align-items:center;margin-inline-start:auto}
 .act{
   font-size:12.5px;padding:6px 10px;border-radius:9px;color:var(--ink-soft);border:1px solid transparent;
@@ -380,8 +382,12 @@ kbd{
 .iline.dirty,.iline:focus{color:var(--fg,#111);background-color:transparent;background-image:var(--patch,linear-gradient(180deg,var(--bg1,#fff),var(--bg2,#fff)));background-size:100% 100%;background-repeat:no-repeat;border-color:transparent}
 .iline:focus{outline:2px solid rgba(99,102,241,.8);outline-offset:1px;z-index:3}
 .ip-stage.boxes .iline{border-color:rgba(129,140,248,.5)}
+.iline.lowconf{border-color:rgba(245,158,11,.85);background:color-mix(in srgb,#f59e0b 9%,transparent)}
+.iline.lowconf:not(:hover):not(:focus):not(.dirty){border-style:dashed}
 .ip-empty{padding:26px;color:#c7ccdd;font-size:14px;text-align:center}
 .ip-hint{margin:0;font-size:12px;color:var(--muted);text-align:center}
+.ip-match{align-self:center;font-size:12px;color:var(--muted);white-space:nowrap}
+.ip-match b{color:var(--ink-soft);font-weight:600}
 .act.primary-act{color:var(--brand1);background:color-mix(in srgb,var(--brand1) 10%,transparent);border-color:color-mix(in srgb,var(--brand1) 22%,transparent)}
 @media (max-width:640px){
   .ip-sheet{padding:12px;max-height:97vh}
@@ -498,6 +504,11 @@ kbd{
         <input type="checkbox" id="prepChk" checked>
         <span class="track"></span>
         שיפור איכות לפני תמלול
+      </label>
+      <label class="switch" title="שני מעברי זיהוי, בחירת התוצאה המדוייקת ומעבר שני לכל שורה — איטי יותר אך מדויק בהרבה">
+        <input type="checkbox" id="haChk" checked>
+        <span class="track"></span>
+        דיוק גבוה
       </label>
       <span class="hint-inline" id="queueHint"></span>
     </div>
@@ -647,7 +658,14 @@ kbd{
     <div class="ip-bar">
       <label class="field">גופן
         <select id="ipFont" aria-label="גופן">
+          <option value="auto">כמו בתמונה (אוטומטי)</option>
           <option value="Heebo, Arial, sans-serif">Heebo</option>
+          <option value="Rubik, Arial, sans-serif">Rubik</option>
+          <option value="Assistant, Arial, sans-serif">Assistant</option>
+          <option value="'Noto Sans Hebrew', Arial, sans-serif">Noto Sans Hebrew</option>
+          <option value="'Frank Ruhl Libre', Georgia, serif">Frank Ruhl Libre</option>
+          <option value="'David Libre', Georgia, serif">David Libre</option>
+          <option value="'Secular One', Arial, sans-serif">Secular One</option>
           <option value="Arial, Helvetica, sans-serif">Arial</option>
           <option value="'Times New Roman', Times, serif">Times</option>
           <option value="'Courier New', monospace">Courier</option>
@@ -655,9 +673,11 @@ kbd{
       </label>
       <label class="field">משקל
         <select id="ipWeight" aria-label="משקל הגופן">
+          <option value="auto">אוטומטי</option>
           <option value="400">רגיל</option>
           <option value="600">בינוני</option>
           <option value="700">מודגש</option>
+          <option value="800">שמן</option>
         </select>
       </label>
       <label class="field">צבע
@@ -682,6 +702,7 @@ kbd{
         <button id="ipSizeUp" aria-label="הגדלת גופן">A+</button>
       </span>
       <label class="switch"><input type="checkbox" id="ipBoxes"><span class="track"></span>הצגת מסגרות</label>
+      <span class="ip-match" id="ipMatch" title="הגופן שזוהה מהתמונה"></span>
     </div>
     <div class="ip-stagewrap" id="ipWrap">
       <div class="ip-stage" id="ipStage">
@@ -710,13 +731,14 @@ kbd{
     theme: "light",
     lang: "heb+eng",
     preprocess: true,
+    hiAccuracy: true,
     fontSize: 17,
     editingId: null,
     viewerId: null,
     totalMs: 0,
     inplace: {
-      font: "Heebo, Arial, sans-serif",
-      weight: "600",
+      font: "auto",
+      weight: "auto",
       color: "auto",
       align: "auto",
       size: 1,
@@ -742,6 +764,7 @@ kbd{
         }));
         localStorage.setItem(LS_KEY, JSON.stringify({
           docs, theme: state.theme, lang: state.lang, preprocess: state.preprocess,
+          hiAccuracy: state.hiAccuracy !== false,
           fontSize: state.fontSize, totalMs: state.totalMs, inplace: state.inplace
         }));
       } catch (e) { /* storage full / disabled */ }
@@ -760,6 +783,7 @@ kbd{
       state.theme = data.theme === "dark" ? "dark" : "light";
       if (data.lang) state.lang = data.lang;
       state.preprocess = data.preprocess !== false;
+      state.hiAccuracy = data.hiAccuracy !== false;
       state.fontSize = data.fontSize || 17;
       state.totalMs = data.totalMs || 0;
       if (data.inplace) Object.assign(state.inplace, data.inplace);
@@ -853,6 +877,25 @@ kbd{
     const lat = (text.match(/[A-Za-z]/g) || []).length;
     return heb >= lat;
   }
+  // OCR sometimes glues graphic noise onto a Hebrew line ("|| + 4 4 SY"). Drop the
+  // tokens that cannot be words in a Hebrew line: pure punctuation runs and very short
+  // Latin letter runs. Digits and real Latin words (MBSR, 05.05.25) are always kept.
+  const SYM_ONLY = /^[^\p{L}\p{N}]+$/u;
+  const LATIN_JUNK = /^[\p{Script=Latin}]{1,3}$/u;
+  function scrubLine(t) {
+    let s = String(t || "").replace(BIDI, "").replace(/[\u200b-\u200d\ufeff]/g, "").replace(/\s+/g, " ").trim();
+    if (!s) return "";
+    s = s.replace(/^[|¦~^_\\<>{}\[\]«»]+|[|¦~^_\\<>{}\[\]«»]+$/g, "").trim();
+    const heb = (s.match(/[\u0590-\u05FF]/g) || []).length;
+    const body = (s.match(/[\p{L}\p{N}]/gu) || []).length;
+    if (heb >= 2) {
+      const toks = s.split(" ").filter(tok => tok && !SYM_ONLY.test(tok) && !LATIN_JUNK.test(tok));
+      const joined = toks.join(" ").trim();
+      const jb = (joined.match(/[\p{L}\p{N}]/gu) || []).length;
+      if (jb >= Math.min(2, body) && jb >= body * 0.5) s = joined;
+    }
+    return s.trim();
+  }
   function highlight(text) {
     const safe = esc(text);
     const q = state.query.trim();
@@ -877,6 +920,7 @@ kbd{
 
   /* ---------------- engine ---------------- */
   let worker = null, workerLang = null, engineBusy = false;
+  let ocrBase = 0, ocrSpan = 100;   // maps a single recognition's progress into the overall run
   const STAGE_HE = {
     "loading tesseract core": "טוען מנוע",
     "initializing tesseract": "מאתחל מנוע",
@@ -899,8 +943,7 @@ kbd{
         const d = getDoc(state.processingId);
         if (!d) return;
         if (m.status === "recognizing text") {
-          d.progress = Math.round((m.progress || 0) * 100);
-          d.stage = "מזהה טקסט";
+          d.progress = Math.min(99, Math.round(ocrBase + (m.progress || 0) * ocrSpan));
         } else {
           d.stage = STAGE_HE[m.status] || m.status;
         }
@@ -965,8 +1008,103 @@ kbd{
     toast(files.length === 1 ? "התמונה נוספה — מתחיל תמלול" : files.length + " תמונות נוספו — מתחיל תמלול", { icon: "🖼️" });
   }
 
-  /* ---------------- image working copy + line boxes ---------------- */
+  /* ---------------- image working copy + OCR layers ---------------- */
   const workCache = new Map();
+  const OCR_TARGET = 2400;   // long side we aim for when recognising
+  const OCR_MAX = 2800;      // hard memory cap for the OCR layers
+  // glyphs that are graphic noise in a photo about 99% of the time
+  const CHAR_BLACKLIST = "|¦~^_`{}[]<>";
+
+  function ocrScaleFor(w, h) {
+    const long = Math.max(w, h);
+    let s = Math.min(3.2, Math.max(1, OCR_TARGET / long));
+    if (long * s > OCR_MAX) s = OCR_MAX / long;
+    return s;
+  }
+
+  // grayscale + contrast stretch between the 2nd and 98th luminance percentiles
+  function toGray(ctx, W, H, stretch) {
+    const img = ctx.getImageData(0, 0, W, H);
+    const p = img.data;
+    const hist = new Uint32Array(256);
+    for (let i = 0; i < p.length; i += 4) hist[(0.299 * p[i] + 0.587 * p[i + 1] + 0.114 * p[i + 2]) | 0]++;
+    const total = W * H;
+    let lo = 0, hi = 255, acc = 0;
+    for (let v = 0; v < 256; v++) { acc += hist[v]; if (acc > total * 0.02) { lo = v; break; } }
+    acc = 0;
+    for (let v = 255; v >= 0; v--) { acc += hist[v]; if (acc > total * 0.02) { hi = v; break; } }
+    const span = Math.max(32, hi - lo);
+    const lut = new Uint8ClampedArray(256);
+    for (let v = 0; v < 256; v++) lut[v] = stretch ? Math.max(0, Math.min(255, (v - lo) * (255 / span))) : v;
+    for (let i = 0; i < p.length; i += 4) {
+      const v = lut[(0.299 * p[i] + 0.587 * p[i + 1] + 0.114 * p[i + 2]) | 0];
+      p[i] = p[i + 1] = p[i + 2] = v;
+      p[i + 3] = 255;
+    }
+    ctx.putImageData(img, 0, 0);
+  }
+
+  // Sauvola local binarisation: keeps faint letters on uneven backgrounds and, when the
+  // page is dark, flips it so the ink ends up dark on light (what Tesseract expects).
+  function sauvola(ctx, W, H, k) {
+    const img = ctx.getImageData(0, 0, W, H);
+    const p = img.data;
+    const n = W * H;
+    const gray = new Float32Array(n);
+    let mean = 0;
+    for (let i = 0, j = 0; j < n; i += 4, j++) { const g = 0.299 * p[i] + 0.587 * p[i + 1] + 0.114 * p[i + 2]; gray[j] = g; mean += g; }
+    mean /= n;
+    const inverted = mean < 120;
+    if (inverted) for (let j = 0; j < n; j++) gray[j] = 255 - gray[j];
+    const stride = W + 1;
+    const s1 = new Float64Array(stride * (H + 1)), s2 = new Float64Array(stride * (H + 1));
+    for (let y = 0; y < H; y++) {
+      let rs = 0, rs2 = 0;
+      for (let x = 0; x < W; x++) {
+        const v = gray[y * W + x];
+        rs += v; rs2 += v * v;
+        s1[(y + 1) * stride + (x + 1)] = s1[y * stride + (x + 1)] + rs;
+        s2[(y + 1) * stride + (x + 1)] = s2[y * stride + (x + 1)] + rs2;
+      }
+    }
+    const r = Math.max(8, Math.round(Math.min(W, H) / 16));
+    const kk = k || 0.34, R = 128;
+    const out = new Uint8ClampedArray(n);
+    for (let y = 0; y < H; y++) {
+      const y0 = Math.max(0, y - r), y1 = Math.min(H - 1, y + r);
+      for (let x = 0; x < W; x++) {
+        const x0 = Math.max(0, x - r), x1 = Math.min(W - 1, x + r);
+        const area = (x1 - x0 + 1) * (y1 - y0 + 1);
+        const a = s1[(y1 + 1) * stride + (x1 + 1)] - s1[y0 * stride + (x1 + 1)] - s1[(y1 + 1) * stride + x0] + s1[y0 * stride + x0];
+        const b = s2[(y1 + 1) * stride + (x1 + 1)] - s2[y0 * stride + (x1 + 1)] - s2[(y1 + 1) * stride + x0] + s2[y0 * stride + x0];
+        const m = a / area;
+        const std = Math.sqrt(Math.max(0, b / area - m * m));
+        const t = m * (1 + kk * (std / R - 1));
+        out[y * W + x] = gray[y * W + x] > t ? 255 : 0;
+      }
+    }
+    for (let i = 0, j = 0; j < n; i += 4, j++) { const v = out[j]; p[i] = p[i + 1] = p[i + 2] = v; p[i + 3] = 255; }
+    ctx.putImageData(img, 0, 0);
+    return inverted;
+  }
+
+  function makeOcrLayers(color, w, h, stretch) {
+    const s = ocrScaleFor(w, h);
+    const W = Math.max(1, Math.round(w * s)), H = Math.max(1, Math.round(h * s));
+    const mk = () => {
+      const c = document.createElement("canvas");
+      c.width = W; c.height = H;
+      const cx = c.getContext("2d", { willReadFrequently: true });
+      cx.imageSmoothingQuality = "high";
+      cx.drawImage(color, 0, 0, W, H);
+      return { c, cx };
+    };
+    const g = mk();
+    toGray(g.cx, W, H, stretch);
+    const b = mk();
+    const inverted = sauvola(b.cx, W, H);
+    return { gray: g.c, bin: b.c, scale: s, inverted };
+  }
   async function buildWork(blob, id) {
     const bmp = await createImageBitmap(blob);
     let scale = Math.min(1, MAX_SIDE / Math.max(bmp.width, bmp.height));
@@ -978,25 +1116,8 @@ kbd{
     const cctx = color.getContext("2d", { willReadFrequently: true });
     cctx.drawImage(bmp, 0, 0, w, h);
     bmp.close && bmp.close();
-    let ocr = color;
-    if (state.preprocess) {
-      ocr = document.createElement("canvas");
-      ocr.width = w; ocr.height = h;
-      const octx = ocr.getContext("2d", { willReadFrequently: true });
-      octx.drawImage(color, 0, 0);
-      try {
-        const img = octx.getImageData(0, 0, w, h);
-        const p = img.data;
-        for (let i = 0; i < p.length; i += 4) {
-          let g = 0.299 * p[i] + 0.587 * p[i + 1] + 0.114 * p[i + 2];
-          g = (g - 128) * 1.32 + 128 + 8;
-          g = g < 0 ? 0 : g > 255 ? 255 : g;
-          p[i] = p[i + 1] = p[i + 2] = g;
-        }
-        octx.putImageData(img, 0, 0);
-      } catch (e) {}
-    }
-    const work = { color, ocr, w, h };
+    const layers = makeOcrLayers(color, w, h, state.preprocess !== false);
+    const work = { color, w, h, gray: layers.gray, bin: layers.bin, ocrScale: layers.scale, inverted: layers.inverted };
     if (id) {
       workCache.set(id, work);
       while (workCache.size > 3) workCache.delete(workCache.keys().next().value);
@@ -1010,19 +1131,49 @@ kbd{
     if (!blob) throw new Error("התמונה כבר לא זמינה — העלו אותה שוב");
     return buildWork(blob, doc.id);
   }
+  const letterRatio = t => {
+    const s = String(t || "").replace(/\s/g, "");
+    if (!s) return 0;
+    return (s.match(/[\p{L}\p{N}]/gu) || []).length / s.length;
+  };
   function extractLines(data, work) {
     const out = [];
+    const sc = work.ocrScale || 1;
     const push = l => {
       if (!l || !l.bbox) return;
-      const t = String(l.text || "").replace(BIDI, "").replace(/\s+/g, " ").trim();
+      // Rebuild the line from its word boxes. Tesseract occasionally glues two words
+      // together in the line string while keeping them apart in the boxes, and that is
+      // what turns "קורס מיינדפולנס" into "קורסמיינדפולנס".
+      let raw = String(l.text || "");
+      const ws = Array.isArray(l.words) ? l.words : null;
+      if (ws && ws.length > 1) {
+        const parts = ws.map(w => String((w && w.text) || "").replace(BIDI, "").replace(/\s+/g, " ").trim()).filter(Boolean);
+        if (parts.length > 1) {
+          const alt = parts.join(" ");
+          const aLen = alt.replace(/\s/g, "").length, bLen = raw.replace(/\s/g, "").length;
+          if (aLen >= bLen * 0.9) raw = alt;
+        }
+      }
+      const t = scrubLine(raw);
       if (!t) return;
+      const conf = l.confidence || 0;
+      const alnum = (t.match(/[\p{L}\p{N}]/gu) || []).length;
+      // drop graphic noise that OCR often reads as punctuation soup
+      if (letterRatio(t) < 0.65) return;
+      if (alnum < 2) return;
+      if (conf < 55) return;
+      if (alnum < 4 && conf < 80) return;
+      const hebChars = (t.match(/[\u0590-\u05FF]/g) || []).length;
+      const latChars = (t.match(/[A-Za-z]/g) || []).length;
+      // a low-confidence run of Latin letters inside a photo is almost always a false hit
+      if (!hebChars && latChars && conf < 78) return;
       const b = l.bbox;
-      const w = Math.max(1, b.x1 - b.x0);
-      const h = Math.max(1, b.y1 - b.y0);
-      if (w < 5 || h < 5) return;
+      const w = Math.max(1, (b.x1 - b.x0) / sc);
+      const h = Math.max(1, (b.y1 - b.y0) / sc);
+      if (w < 4 || h < 4) return;
       out.push({
         t, o: t,
-        x: Math.min(b.x0, work.w - 1), y: Math.min(b.y0, work.h - 1),
+        x: Math.max(0, Math.min(b.x0 / sc, work.w - 1)), y: Math.max(0, Math.min(b.y0 / sc, work.h - 1)),
         w: Math.min(w, work.w), h: Math.min(h, work.h),
         conf: Math.round(l.confidence || 0),
         dir: isRtl(t) ? "rtl" : "ltr",
@@ -1080,6 +1231,301 @@ kbd{
         else ln.color = bgLum > 130 ? "#111111" : "#ffffff";
       } catch (e) {}
     });
+  }
+
+  /* ---------------- per-line typography (font / weight / size / ink colour) ---------------- */
+  // The editor draws the replacement text straight onto the picture, so it has to look
+  // like the original: same family, same weight, same size, same ink colour and the same
+  // ink box. Each line is matched against a small library of Hebrew families by rendering
+  // the recognised text and comparing it, glyph by glyph, with the pixels in the image.
+  const FONT_LIB = [
+    { name: "Heebo", css: "Heebo, Arial, sans-serif", weights: [400, 500, 700, 800], sans: true },
+    { name: "Rubik", css: "Rubik, Arial, sans-serif", weights: [400, 500, 600, 700], sans: true },
+    { name: "Assistant", css: "Assistant, Arial, sans-serif", weights: [400, 600, 700], sans: true },
+    { name: "Noto Sans Hebrew", css: "'Noto Sans Hebrew', Arial, sans-serif", weights: [400, 500, 700], sans: true },
+    { name: "Alef", css: "Alef, Arial, sans-serif", weights: [400, 700], sans: true },
+    { name: "Varela Round", css: "'Varela Round', Arial, sans-serif", weights: [400], sans: true },
+    { name: "Secular One", css: "'Secular One', Arial, sans-serif", weights: [400], sans: true },
+    { name: "Frank Ruhl Libre", css: "'Frank Ruhl Libre', Georgia, serif", weights: [400, 500, 700, 900], sans: false },
+    { name: "David Libre", css: "'David Libre', Georgia, serif", weights: [400, 700], sans: false },
+    { name: "Suez One", css: "'Suez One', Georgia, serif", weights: [400], sans: false }
+  ];
+  const TY_GRID_W = 56, TY_GRID_H = 22;
+  let fontsReadyPromise = null;
+  function ensureFonts() {
+    if (fontsReadyPromise) return fontsReadyPromise;
+    const sample = "אבגדהוזחטיכלמנסעפצקרשתךםןףץ";
+    const jobs = [];
+    FONT_LIB.forEach(f => f.weights.forEach(w => {
+      try { jobs.push(document.fonts.load(w + " 48px \"" + f.name + "\"", sample)); } catch (e) {}
+    }));
+    fontsReadyPromise = Promise.all(jobs.map(p => p.catch(() => null)))
+      .then(() => (document.fonts.ready || Promise.resolve()))
+      .catch(() => null);
+    return fontsReadyPromise;
+  }
+
+  // tight ink mask + core ink colour of one line, measured on the original pixels
+  function lineInk(work, ln) {
+    const padX = Math.max(2, Math.round(ln.h * 0.12));
+    const padY = Math.max(2, Math.round(ln.h * 0.18));
+    const x0 = Math.max(0, Math.floor(ln.x - padX)), y0 = Math.max(0, Math.floor(ln.y - padY));
+    const x1 = Math.min(work.w, Math.ceil(ln.x + ln.w + padX)), y1 = Math.min(work.h, Math.ceil(ln.y + ln.h + padY));
+    const w = x1 - x0, h = y1 - y0;
+    if (w < 5 || h < 5) return null;
+    let img;
+    try { img = work.color.getContext("2d", { willReadFrequently: true }).getImageData(x0, y0, w, h); } catch (e) { return null; }
+    const p = img.data;
+    const mask = inkMask(p, w, h, ln, 0.9);
+    const lum = new Float32Array(w * h);
+    for (let i = 0, j = 0; j < w * h; i += 4, j++) lum[j] = 0.299 * p[i] + 0.587 * p[i + 1] + 0.114 * p[i + 2];
+    const bgL = rgbLum(ln.bg1) != null ? rgbLum(ln.bg1) : (rgbLum(ln.bg2) != null ? rgbLum(ln.bg2) : 255);
+    let minX = w, minY = h, maxX = -1, maxY = -1, count = 0;
+    const devs = [];
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      if (!mask[y * w + x]) continue;
+      count++;
+      if (x < minX) minX = x; if (x > maxX) maxX = x;
+      if (y < minY) minY = y; if (y > maxY) maxY = y;
+      devs.push(Math.abs(lum[y * w + x] - bgL));
+    }
+    if (count < 10 || maxX < minX) return null;
+    devs.sort((a, b) => a - b);
+    const coreDev = devs[Math.floor(devs.length * 0.8)] || 0;
+    // ink colour from the core of the strokes only (edges are blended into the background
+    // and are what made the old average look washed out)
+    let r = 0, g = 0, b = 0, n = 0;
+    for (let y = minY; y <= maxY; y++) for (let x = minX; x <= maxX; x++) {
+      const i = y * w + x;
+      if (!mask[i]) continue;
+      if (Math.abs(lum[i] - bgL) < coreDev) continue;
+      const j = i * 4;
+      r += p[j]; g += p[j + 1]; b += p[j + 2]; n++;
+    }
+    const ink = n > 8 ? "rgb(" + Math.round(r / n) + "," + Math.round(g / n) + "," + Math.round(b / n) + ")"
+      : (bgL > 130 ? "#111111" : "#ffffff");
+    // ink box: the line mask is dilated by 2px, so pull the box back in by the same amount
+    const bx = x0 + minX + 2, by = y0 + minY + 2;
+    const bw = Math.max(4, maxX - minX - 3), bh = Math.max(4, maxY - minY - 3);
+    const tw = Math.max(1, maxX - minX + 1), th = Math.max(1, maxY - minY + 1);
+    const tmask = new Uint8Array(tw * th);
+    for (let y = 0; y < th; y++) for (let x = 0; x < tw; x++) tmask[y * tw + x] = mask[(y + minY) * w + (x + minX)] ? 1 : 0;
+    // coverage grid of the original glyphs (for the font match)
+    const mc = document.createElement("canvas");
+    mc.width = w; mc.height = h;
+    const mcx = mc.getContext("2d", { willReadFrequently: true });
+    const md = mcx.createImageData(w, h);
+    for (let i = 0; i < w * h; i++) {
+      md.data[i * 4] = md.data[i * 4 + 1] = md.data[i * 4 + 2] = 255;
+      md.data[i * 4 + 3] = mask[i] ? 255 : 0;
+    }
+    mcx.putImageData(md, 0, 0);
+    const grid = new Float32Array(TY_GRID_W * TY_GRID_H);
+    {
+      const sc = document.createElement("canvas");
+      sc.width = TY_GRID_W; sc.height = TY_GRID_H;
+      const scx = sc.getContext("2d", { willReadFrequently: true });
+      scx.imageSmoothingEnabled = true; scx.imageSmoothingQuality = "high";
+      scx.drawImage(mc, minX, minY, Math.max(1, maxX - minX + 1), Math.max(1, maxY - minY + 1), 0, 0, TY_GRID_W, TY_GRID_H);
+      const sd = scx.getImageData(0, 0, TY_GRID_W, TY_GRID_H).data;
+      for (let i = 0; i < TY_GRID_W * TY_GRID_H; i++) grid[i] = sd[i * 4 + 3] / 255;
+    }
+    return {
+      mask, mw: tw, mh: th, grid, ink,
+      // the mask above is grown 2px; undo that before measuring stroke widths
+      stats: strokeStats(tw > 26 && th > 18 ? erodeMask(tmask, tw, th, 2) : tmask, tw, th),
+      box: { x: bx, y: by, w: bw, h: bh }
+    };
+  }
+
+  // render the text with one candidate font and measure its ink: grid, aspect, baseline lift
+  let renderScratch = null, gridScratch = null;
+  function renderCanvas() {
+    if (!renderScratch) {
+      renderScratch = document.createElement("canvas");
+      renderScratch.width = 420; renderScratch.height = 160;
+    }
+    return renderScratch;
+  }
+  function gridCanvas() {
+    if (!gridScratch) {
+      gridScratch = document.createElement("canvas");
+      gridScratch.width = TY_GRID_W; gridScratch.height = TY_GRID_H;
+    }
+    return gridScratch;
+  }
+  function renderGlyphGrid(text, font, weight, fs, rtl) {
+    const W = 420, H = 160;
+    const c = renderCanvas();
+    const cx = c.getContext("2d", { willReadFrequently: true });
+    cx.setTransform(1, 0, 0, 1, 0, 0);
+    cx.clearRect(0, 0, W, H);
+    cx.font = weight + " " + fs + "px " + font;
+    cx.textBaseline = "alphabetic";
+    cx.direction = rtl ? "rtl" : "ltr";
+    cx.textAlign = "center";
+    cx.fillStyle = "#fff";
+    const baseY = 110;
+    cx.fillText(text, W / 2, baseY, W - 16);
+    const d = cx.getImageData(0, 0, W, H).data;
+    let minX = W, minY = H, maxX = -1, maxY = -1;
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      if (d[(y * W + x) * 4 + 3] < 24) continue;
+      if (x < minX) minX = x; if (x > maxX) maxX = x;
+      if (y < minY) minY = y; if (y > maxY) maxY = y;
+    }
+    if (maxX < minX) return null;
+    const bw = maxX - minX + 1, bh = maxY - minY + 1;
+    const g = new Float32Array(TY_GRID_W * TY_GRID_H);
+    const sc = gridCanvas();
+    const scx = sc.getContext("2d", { willReadFrequently: true });
+    scx.setTransform(1, 0, 0, 1, 0, 0);
+    scx.clearRect(0, 0, TY_GRID_W, TY_GRID_H);
+    scx.imageSmoothingEnabled = true; scx.imageSmoothingQuality = "high";
+    scx.drawImage(c, minX, minY, bw, bh, 0, 0, TY_GRID_W, TY_GRID_H);
+    const sd = scx.getImageData(0, 0, TY_GRID_W, TY_GRID_H).data;
+    for (let i = 0; i < TY_GRID_W * TY_GRID_H; i++) g[i] = sd[i * 4 + 3] / 255;
+    let mask = new Uint8Array(bw * bh);
+    for (let y = 0; y < bh; y++) for (let x = 0; x < bw; x++) {
+      if (d[((y + minY) * W + (x + minX)) * 4 + 3] > 128) mask[y * bw + x] = 1;
+    }
+    return { grid: g, w: bw, h: bh, asc: baseY - minY, desc: maxY - baseY, stats: strokeStats(mask, bw, bh) };
+  }
+  function erodeMask(mask, w, h, passes) {
+    let src = mask;
+    for (let p = 0; p < passes; p++) {
+      const out = new Uint8Array(src.length);
+      for (let y = 1; y < h - 1; y++) for (let x = 1; x < w - 1; x++) {
+        const i = y * w + x;
+        if (src[i] && src[i - 1] && src[i + 1] && src[i - w] && src[i + w]) out[i] = 1;
+      }
+      src = out;
+    }
+    return src;
+  }
+  // average stem width vs average horizontal bar thickness: serif faces are high-contrast,
+  // geometric sans faces are even, which is the cue that separates the two families
+  function strokeStats(mask, w, h) {
+    const hr = [], vr = [];
+    for (let y = 0; y < h; y++) { let run = 0; for (let x = 0; x < w; x++) { if (mask[y * w + x]) run++; else { if (run > 1) hr.push(run); run = 0; } } if (run > 1) hr.push(run); }
+    for (let x = 0; x < w; x++) { let run = 0; for (let y = 0; y < h; y++) { if (mask[y * w + x]) run++; else { if (run > 1) vr.push(run); run = 0; } } if (run > 1) vr.push(run); }
+    const med = a => a.length ? a.slice().sort((p, q) => p - q)[a.length >> 1] : 0;
+    const stem = med(hr), bar = med(vr);
+    let ink = 0; for (let i = 0; i < mask.length; i++) ink += mask[i];
+    return { stem, bar, contrast: bar ? stem / bar : 1, density: ink / (w * h) };
+  }
+
+  // optical blur so a 1-2px placement difference does not dominate the comparison
+  function blurGrid(g) {
+    const out = new Float32Array(g.length);
+    for (let y = 0; y < TY_GRID_H; y++) for (let x = 0; x < TY_GRID_W; x++) {
+      let s = 0, n = 0;
+      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+        const xx = x + dx, yy = y + dy;
+        if (xx < 0 || xx >= TY_GRID_W || yy < 0 || yy >= TY_GRID_H) continue;
+        s += g[yy * TY_GRID_W + xx]; n++;
+      }
+      out[y * TY_GRID_W + x] = s / n;
+    }
+    return out;
+  }
+  function gridScore(a, b) {
+    const A = blurGrid(a), B = blurGrid(b);
+    let diff = 0, sum = 0;
+    for (let i = 0; i < A.length; i++) { diff += Math.abs(A[i] - B[i]); sum += A[i]; }
+    return diff / Math.max(1, sum);
+  }
+  // how badly a rendered candidate explains the line's actual pixels: glyph shapes,
+  // line proportion and stroke contrast
+  function matchScore(ink, r) {
+    if (!ink || !r) return Infinity;
+    let score = gridScore(ink.grid, r.grid);
+    const srcAspect = ink.mw / ink.mh, rAspect = r.w / r.h;
+    score += Math.min(0.7, Math.abs(Math.log(Math.max(0.05, rAspect) / Math.max(0.05, srcAspect))));
+    score += 0.9 * Math.min(1.4, Math.abs(Math.log(Math.max(0.2, r.stats.contrast) / Math.max(0.2, ink.stats.contrast))));
+    return score;
+  }
+
+  const TY_VERSION = 2;   // bump when the matching changes, so cached results are redone
+  async function analyzeLine(work, ln) {
+    if (ln.ty !== undefined && (!ln.ty || ln.ty.v === TY_VERSION)) return ln.ty;
+    const ink = lineInk(work, ln);
+    if (!ink || !ln.o) { ln.ty = null; return null; }
+    await ensureFonts();
+    const rtl = (ln.dir || "rtl") === "rtl";
+    let best = null;
+    const probe = 64;
+    FONT_LIB.forEach(f => f.weights.forEach(w => {
+      const r = renderGlyphGrid(ln.o, f.css, w, probe, rtl);
+      if (!r) return;
+      const score = matchScore(ink, r);
+      if (!best || score < best.score) best = { score, f, w, r };
+    }));
+    if (!best) { ln.ty = null; return null; }
+    // scale the font so the rendered ink height matches the ink height in the picture
+    let fs = Math.max(6, probe * (ink.mh / best.r.h));
+    let r = renderGlyphGrid(ln.o, best.f.css, best.w, fs, rtl) || best.r;
+    // and correct once more with the shared left/right edges of the line
+    if (r.w > 0 && ink.mw > 0) {
+      const k = ink.mw / r.w;
+      if (k > 0.5 && k < 2) { fs *= k; r = renderGlyphGrid(ln.o, best.f.css, best.w, fs, rtl) || r; }
+    }
+    // a Hebrew glyph is roughly 0.6–1.1 of the font size tall; anything beyond that
+    // means the crop or the reading is unreliable, so keep it sane
+    fs = Math.min(Math.max(fs, ink.box.h * 0.55), ink.box.h * 1.9);
+    ln.ty = {
+      v: TY_VERSION,
+      ff: best.f.css, fw: best.w, fs: Math.round(fs * 100) / 100,
+      ink: ink.ink, box: ink.box,
+      ascent: r.asc / fs, descent: r.desc / fs,
+      sans: best.f.sans, score: Math.round(best.score * 100) / 100
+    };
+    return ln.ty;
+  }
+
+  async function analyzeLines(doc, work, onLine) {
+    if (!doc || !doc.lines) return;
+    let slice = performance.now();
+    for (const ln of doc.lines) {
+      try { await analyzeLine(work, ln); } catch (e) { ln.ty = null; }
+      if (onLine) onLine(ln);
+      // let the page breathe in slices, instead of once per line
+      if (performance.now() - slice > 140) { await new Promise(r => setTimeout(r, 0)); slice = performance.now(); }
+    }
+    // a poster is typeset with one or two families: the confident lines vote, and the
+    // unsure ones (small text, imperfect reading) inherit the winner instead of guessing
+    const votes = {};
+    doc.lines.forEach(l => {
+      if (!l.ty || l.ty.score > 0.65 || l.ty.box.w < 60) return;
+      votes[l.ty.ff] = (votes[l.ty.ff] || 0) + l.ty.box.w * l.ty.box.h;
+    });
+    const top = Object.keys(votes).sort((a, b) => votes[b] - votes[a])[0];
+    if (!top) return;
+    const fam = FONT_LIB.find(f => f.css === top);
+    if (!fam) return;
+    doc.lines.forEach(l => {
+      if (!l.ty || l.ty.ff === top) return;
+      // switch only when the document's family explains the line about as well
+      const ink = lineInk(work, l);
+      if (!ink) return;
+      let alt = null;
+      fam.weights.forEach(w => {
+        const r = renderGlyphGrid(l.o, fam.css, w, l.ty.fs, (l.dir || "rtl") === "rtl");
+        if (!r) return;
+        const s = matchScore(ink, r);
+        if (!alt || s < alt.s) alt = { s, w };
+      });
+      // a weak match is no evidence at all — then the document's family is the better bet
+      if (alt && (alt.s <= l.ty.score + 0.12 || l.ty.score > 0.45)) {
+        l.ty.ff = top; l.ty.fw = alt.w; l.ty.score = Math.round(alt.s * 100) / 100; l.ty.voted = true;
+        if (onLine) onLine(l);
+      }
+    });
+  }
+  function detectedFontLabel(ln) {
+    if (!ln || !ln.ty) return "";
+    const f = FONT_LIB.find(x => x.css === ln.ty.ff);
+    return (f ? f.name : "") + " · " + ln.ty.fw;
   }
 
   /* ---------------- background reconstruction (content-aware fill) ---------------- */
@@ -1338,13 +1784,62 @@ kbd{
       doc.dims = { w: work.w, h: work.h };
       const w = await getWorker();
       state.processingId = doc.id;
-      const res = await w.recognize(work.ocr, {}, { blocks: true });
-      const data = (res && res.data) || {};
-      const text = tidyText(data.text || "");
-      doc.lines = extractLines(data, work);
-      doc.text = text || doc.lines.map(l => l.t).join("\n");
-      doc.confidence = Math.round(data.confidence || 0);
-      doc.status = "done"; doc.progress = 100; doc.stage = "הושלם";
+      const hi = state.hiAccuracy !== false;
+
+      const runPass = async (img, psm, base, span) => {
+        ocrBase = base; ocrSpan = span;
+        await w.setParameters({ tessedit_pageseg_mode: psm, preserve_interword_spaces: "1", user_defined_dpi: "300", tessedit_char_blacklist: CHAR_BLACKLIST });
+        const res = await w.recognize(img, {}, { blocks: true, text: true });
+        const data = (res && res.data) || {};
+        const text = tidyText(data.text || "");
+        const letters = (text.match(/[\p{L}\p{N}]/gu) || []).length;
+        const conf = data.confidence || 0;
+        return { data, text, letters, conf, score: conf * Math.log(2 + letters), img };
+      };
+
+      doc.stage = hi ? "מעבר ראשון" : "מזהה טקסט";
+      const passes = [await runPass(work.gray, "3", 2, hi ? 26 : 92)];
+      if (hi) {
+        doc.stage = "מעבר שני (בינארי)";
+        try { passes.push(await runPass(work.bin, "6", 28, 20)); } catch (e) {}
+        doc.stage = "איתור טקסט מפוזר";
+        try { passes.push(await runPass(work.bin, "11", 48, 14)); } catch (e) {}
+      }
+      passes.sort((a, b) => b.score - a.score);
+      const best = passes[0];
+      let lines = extractLines(best.data, work);
+
+      if (hi) {
+        // A photographed poster or sign holds text too small for whole-image layout
+        // analysis, so read overlapping tiles at higher zoom and merge the readings.
+        const tileLists = [];
+        try { tileLists.push(...await recognizeTiles(work, doc, w, work.bin, 62, 20)); } catch (e) {}
+        const all = [lines];
+        passes.forEach(p => all.push(extractLines(p.data, work)));
+        all.push(...tileLists);
+        const merged = mergeLineSets(all);
+        if (merged.length >= lines.length) lines = merged;
+        lines = mergeFragments(lines);
+      } else {
+        lines = mergeFragments(lines);
+      }
+      doc.lines = lines;
+
+      if (hi && doc.lines.length) {
+        doc.stage = "מחדד שורות";
+        const src = lines.length && passes[0].img === work.bin ? work.bin : (work.bin || work.gray);
+        await refineLines(doc, work, w, src);
+      }
+
+      const lineText = doc.lines.map(l => l.t).join("\n");
+      const lineLetters = (lineText.match(/[\p{L}\p{N}]/gu) || []).length;
+      doc.text = (lineLetters >= best.letters * 0.7 && lineText.trim()) ? tidyText(lineText) : (best.text || lineText);
+      const confs = doc.lines.filter(l => l.conf).map(l => l.conf);
+      doc.confidence = confs.length ? Math.round(confs.reduce((s, c) => s + c, 0) / confs.length) : Math.round(best.conf);
+      doc.review = doc.lines.filter(l => l.conf && l.conf < 70).length;
+      await w.setParameters({ tessedit_pageseg_mode: "3" });
+      doc.progress = 100;
+      doc.status = "done"; doc.stage = "הושלם";
       doc.rtl = isRtl(doc.text);
       doc.duration = performance.now() - t0;
       state.totalMs += doc.duration;
@@ -1358,6 +1853,199 @@ kbd{
     state.processingId = null;
     save(); render();
     updateQueueHint();
+  }
+  // Read overlapping tiles of the image at a higher zoom. Whole-image layout analysis
+  // ignores small text in a photographed scene; a 2x2 tiling with padding gives it a
+  // second chance at a sensible glyph size.
+  async function recognizeTiles(work, doc, w, src, base, span) {
+    const out = [];
+    if (Math.min(work.w, work.h) < 240) return out;
+    const sc = work.ocrScale || 1;
+    const cols = 2, rows = 2, overlap = 0.12;
+    const tw = work.w / cols, th = work.h / rows;
+    await w.setParameters({ tessedit_pageseg_mode: "6", preserve_interword_spaces: "1", user_defined_dpi: "300", tessedit_char_blacklist: CHAR_BLACKLIST });
+    let n = 0;
+    const total = cols * rows;
+    for (let ry = 0; ry < rows; ry++) for (let rx = 0; rx < cols; rx++) {
+      const x0 = Math.max(0, Math.round(rx * tw - tw * overlap));
+      const y0 = Math.max(0, Math.round(ry * th - th * overlap));
+      const x1 = Math.min(work.w, Math.round((rx + 1) * tw + tw * overlap));
+      const y1 = Math.min(work.h, Math.round((ry + 1) * th + th * overlap));
+      const cw = x1 - x0, ch = y1 - y0;
+      n++;
+      if (cw < 60 || ch < 40) continue;
+      const s = Math.min(2.4, Math.max(1, 1400 / Math.max(cw, ch)));
+      const tc = document.createElement("canvas");
+      tc.width = Math.max(1, Math.round(cw * s));
+      tc.height = Math.max(1, Math.round(ch * s));
+      const tctx = tc.getContext("2d");
+      tctx.imageSmoothingQuality = "high";
+      tctx.drawImage(src, Math.round(x0 * sc), Math.round(y0 * sc), Math.round(cw * sc), Math.round(ch * sc), 0, 0, tc.width, tc.height);
+      let data = {};
+      ocrBase = base + (n - 1) * (span / total); ocrSpan = span / total;
+      try {
+        const res = await w.recognize(tc, {}, { blocks: true, text: true });
+        data = (res && res.data) || {};
+      } catch (e) { continue; }
+      const k = cw / tc.width;
+      const list = [];
+      const push = l => {
+        if (!l || !l.bbox) return;
+        const t = scrubLine(l.text);
+        const conf = l.confidence || 0;
+        const alnum = (t.match(/[\p{L}\p{N}]/gu) || []).length;
+        if (!t || letterRatio(t) < 0.65) return;
+        if (alnum < 2 || conf < 55) return;
+        if (alnum < 4 && conf < 80) return;
+        if (!/[\u0590-\u05FF]/.test(t) && /[A-Za-z]/.test(t) && conf < 78) return;
+        const b = l.bbox;
+        const lw = (b.x1 - b.x0) * k, lh = (b.y1 - b.y0) * k;
+        if (lw < 4 || lh < 4) return;
+        list.push({
+          t, o: t,
+          x: x0 + b.x0 * k, y: y0 + b.y0 * k, w: lw, h: lh,
+          conf: Math.round(l.confidence || 0),
+          dir: isRtl(t) ? "rtl" : "ltr",
+          color: "#111111", bg1: "#ffffff", bg2: "#ffffff"
+        });
+      };
+      if (Array.isArray(data.blocks)) data.blocks.forEach(b => (b.paragraphs || []).forEach(p => (p.lines || []).forEach(push)));
+      else if (Array.isArray(data.lines)) data.lines.forEach(push);
+      out.push(list);
+    }
+    const flat = [];
+    out.forEach(l => flat.push(...l));
+    sampleLineColors(flat, work.color);
+    return out;
+  }
+
+  // Lines from several readings overlap heavily; keep the most confident copy of each
+  // and put the survivors in reading order (top to bottom, then right to left).
+  function normText(t) { return String(t || "").replace(BIDI, "").replace(/[^\p{L}\p{N}]+/gu, " ").trim().toLowerCase(); }
+  function bigrams(s) { const a = String(s || ""); const out = []; for (let i = 0; i < a.length - 1; i++) out.push(a.slice(i, i + 2)); return out; }
+  function textSim(a, b) {
+    const A = bigrams(normText(a)), B = bigrams(normText(b));
+    if (!A.length || !B.length) return 0;
+    const m = new Map();
+    A.forEach(g => m.set(g, (m.get(g) || 0) + 1));
+    let hit = 0;
+    B.forEach(g => { const c = m.get(g); if (c) { hit++; m.set(g, c - 1); } });
+    return (2 * hit) / (A.length + B.length);
+  }
+  function mergeLineSets(lists) {
+    const all = [];
+    lists.forEach(list => (list || []).forEach(l => all.push(l)));
+    all.sort((a, b) => (b.conf || 0) - (a.conf || 0));
+    const kept = [];
+    all.forEach(l => {
+      const dup = kept.some(k => {
+        const iy = Math.max(0, Math.min(l.y + l.h, k.y + k.h) - Math.max(l.y, k.y));
+        const ix = Math.max(0, Math.min(l.x + l.w, k.x + k.w) - Math.max(l.x, k.x));
+        const vOver = iy / Math.max(1, Math.min(l.h, k.h));
+        const hOver = ix / Math.max(1, Math.min(l.w, k.w));
+        // same place, or the same words read at slightly different boxes
+        if (vOver > 0.55 && hOver > 0.45) return true;
+        if (vOver > 0.4 && textSim(l.t, k.t) > 0.72) return true;
+        // a shorter fragment fully inside a longer reading of the same text
+        if (vOver > 0.6 && textSim(l.t, k.t) > 0.55 && (l.w * l.h) < (k.w * k.h) * 0.8) return true;
+        return false;
+      });
+      if (!dup) kept.push(l);
+    });
+    kept.sort((a, b) => {
+      const dy = (a.y + a.h / 2) - (b.y + b.h / 2);
+      if (Math.abs(dy) > Math.min(a.h, b.h) * 0.6) return dy;
+      return b.x - a.x;
+    });
+    return kept;
+  }
+
+  // A line broken into pieces by the layout analyser (or by tiled reading) is stitched back
+  // together: pieces on the same baseline, close enough horizontally and in the same
+  // direction belong to one line. Text is joined in reading order.
+  function mergeFragments(list) {
+    const groups = [];
+    (list || []).forEach(l => {
+      if (!l) return;
+      let hit = null;
+      for (const g of groups) {
+        if ((g.dir || "rtl") !== (l.dir || "rtl")) continue;
+        const b = g.box;
+        if (Math.abs((b.y + b.h / 2) - (l.y + l.h / 2)) > Math.max(2, Math.min(b.h, l.h) * 0.5)) continue;
+        const gap = l.x > b.x + b.w ? l.x - (b.x + b.w) : (b.x > l.x + l.w ? b.x - (l.x + l.w) : 0);
+        if (gap > Math.max(b.h, l.h) * 1.1) continue;
+        // the same words already sit on this baseline: it is a duplicate reading, not a fragment
+        if (g.items.some(it => textSim(it.t, l.t) > 0.7)) return;
+        hit = g; break;
+      }
+      if (!hit) { groups.push({ dir: l.dir, box: { x: l.x, y: l.y, w: l.w, h: l.h }, items: [l] }); return; }
+      hit.items.push(l);
+      const b = hit.box;
+      const x0 = Math.min(b.x, l.x), y0 = Math.min(b.y, l.y);
+      const x1 = Math.max(b.x + b.w, l.x + l.w), y1 = Math.max(b.y + b.h, l.y + l.h);
+      hit.box = { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
+    });
+    const out = groups.map(g => {
+      if (g.items.length === 1) return g.items[0];
+      const rtl = (g.dir || "rtl") === "rtl";
+      const parts = g.items.slice().sort((a, b) => rtl ? (b.x - a.x) : (a.x - b.x));
+      const seen = [];
+      parts.forEach(p => { const t = p.t.trim(); if (t && seen.indexOf(t) === -1) seen.push(t); });
+      const text = seen.join(" ");
+      const base = parts[0];
+      return {
+        t: text, o: text,
+        x: g.box.x, y: g.box.y, w: g.box.w, h: g.box.h,
+        conf: Math.round(parts.reduce((s, p) => s + (p.conf || 0), 0) / parts.length),
+        dir: base.dir, color: base.color, bg1: base.bg1, bg2: base.bg2
+      };
+    });
+    out.sort((a, b) => {
+      const dy = (a.y + a.h / 2) - (b.y + b.h / 2);
+      if (Math.abs(dy) > Math.min(a.h, b.h) * 0.6) return dy;
+      return b.x - a.x;
+    });
+    return out;
+  }
+
+  // Second pass: re-read every weak line on its own, cropped and enlarged, as a single
+  // line of text. A tight crop with no surrounding graphics is where most of the
+  // gibberish disappears; the new reading only wins when it is more confident.
+  async function refineLines(doc, work, w, src) {
+    const sc = work.ocrScale || 1;
+    const sctx = src.getContext("2d");
+    const targets = doc.lines.filter(l => l.conf < 90 && letterRatio(l.t) >= 0.6).slice(0, 60);
+    if (!targets.length) return;
+    await w.setParameters({ tessedit_pageseg_mode: "7", preserve_interword_spaces: "1", user_defined_dpi: "300", tessedit_char_blacklist: CHAR_BLACKLIST });
+    let done = 0;
+    for (const ln of targets) {
+      const padX = Math.max(2, ln.w * 0.05), padY = Math.max(2, ln.h * 0.12);
+      const x0 = Math.max(0, Math.round((ln.x - padX) * sc));
+      const y0 = Math.max(0, Math.round((ln.y - padY) * sc));
+      const x1 = Math.min(src.width, Math.round((ln.x + ln.w + padX) * sc));
+      const y1 = Math.min(src.height, Math.round((ln.y + ln.h + padY) * sc));
+      const cw = x1 - x0, ch = y1 - y0;
+      if (cw < 8 || ch < 6) continue;
+      const f = Math.min(4, Math.max(1, 52 / ch));
+      const tc = document.createElement("canvas");
+      tc.width = Math.max(1, Math.round(cw * f));
+      tc.height = Math.max(1, Math.round(ch * f));
+      const tctx = tc.getContext("2d");
+      tctx.imageSmoothingQuality = "high";
+      tctx.drawImage(src, x0, y0, cw, ch, 0, 0, tc.width, tc.height);
+      try {
+        const res = await w.recognize(tc, {}, { text: true });
+        const data = (res && res.data) || {};
+        const t = scrubLine(tidyText(String(data.text || "")).replace(/\s*\n+\s*/g, " "));
+        const c = Math.round(data.confidence || 0);
+        if (t && c > ln.conf + 3 && t.length >= 2 && letterRatio(t) >= 0.6) {
+          ln.t = t; ln.o = t; ln.conf = c;
+        }
+      } catch (e) { /* keep the first reading */ }
+      done++;
+      doc.progress = Math.min(99, Math.round(78 + (done / targets.length) * 20));
+      paintProgress(doc);
+    }
   }
   function updateQueueHint() {
     const pending = state.docs.filter(d => d.status === "pending" || d.status === "working").length;
@@ -1421,6 +2109,7 @@ kbd{
       '<span class="chip">' + charCount(d.text) + " תווים</span>" +
       (d.duration ? '<span class="chip">' + fmtTime(d.duration) + "</span>" : "") +
       (d.confidence ? '<span class="chip">דיוק ' + d.confidence + "%</span>" : "") +
+      (d.review ? '<span class="chip warn" title="שורות שהזיהוי בהן פחות בטוח — אפשר לתקן בלחיצה על התמונה">' + d.review + " לבדיקה</span>" : "") +
       "</div>";
 
     let body = "";
@@ -1616,34 +2305,46 @@ kbd{
   /* ---------------- in-place editor ---------------- */
   const ip = { doc: null, work: null, scale: 1, open: false };
 
+  // typography actually used for a line: the matched font unless the user overrides it
+  function ipType(ln) {
+    const s = state.inplace, ty = ln.ty || null;
+    return {
+      ff: s.font === "auto" ? ((ty && ty.ff) || "Heebo, Arial, sans-serif") : s.font,
+      fw: s.weight !== "auto" ? s.weight : (s.font === "auto" && ty && ty.fw ? ty.fw : 400),
+      fs: Math.max(6, ((ty && ty.fs) || ln.h * 0.8) * s.size),
+      ink: s.color === "auto" ? ((ty && ty.ink) || ln.color || "#111111") : s.color,
+      box: (ty && ty.box) || ipRect(ln)
+    };
+  }
   function ipLineStyle(el, ln) {
     const s = state.inplace;
     const rtl = (ln.dir || "rtl") === "rtl";
     const align = s.align === "auto" ? (rtl ? "right" : "left") : s.align;
-    el.style.setProperty("--fg", s.color === "auto" ? (ln.color || "#111111") : s.color);
+    const t = ipType(ln);
+    el.style.setProperty("--fg", t.ink);
     el.style.setProperty("--bg1", ln.bg1 || "#ffffff");
     el.style.setProperty("--bg2", ln.bg2 || "#ffffff");
-    el.style.fontFamily = s.font;
-    el.style.fontWeight = s.weight;
-    el.style.fontSize = Math.max(6, ln.h * 0.8 * s.size) + "px";
+    el.style.fontFamily = t.ff;
+    el.style.fontWeight = t.fw;
+    el.style.fontSize = t.fs + "px";
     el.style.justifyContent = align === "center" ? "center" : ((align === "right") === rtl ? "flex-start" : "flex-end");
     el.style.textAlign = align;
   }
   function ipFitText(el, ln) {
-    const base = Math.max(6, ln.h * 0.8 * state.inplace.size);
+    const base = ipType(ln).fs;
     el.style.fontSize = base + "px";
     let size = base, guard = 0;
-    while (el.scrollWidth > el.clientWidth + 1 && size > base * 0.55 && guard++ < 40) {
-      size *= 0.94;
+    while (el.scrollWidth > el.clientWidth + 1 && size > base * 0.4 && guard++ < 60) {
+      size *= 0.96;
       el.style.fontSize = size.toFixed(2) + "px";
     }
   }
   function ipPlace(el, ln) {
-    const rect = ipRect(ln);
-    el.style.left = rect.x + "px";
-    el.style.top = rect.y + "px";
-    el.style.width = rect.w + "px";
-    el.style.height = rect.h + "px";
+    const box = ipType(ln).box;
+    el.style.left = box.x + "px";
+    el.style.top = box.y + "px";
+    el.style.width = box.w + "px";
+    el.style.height = box.h + "px";
     ipLineStyle(el, ln);
     ipFitText(el, ln);
   }
@@ -1666,7 +2367,7 @@ kbd{
     layer.style.height = work.h + "px";
     doc.lines.forEach((ln, i) => {
       const el = document.createElement("div");
-      el.className = "iline" + (ln.t !== ln.o ? " dirty" : "");
+      el.className = "iline" + (ln.t !== ln.o ? " dirty" : "") + (ln.conf && ln.conf < 70 ? " lowconf" : "");
       el.dataset.i = i;
       el.setAttribute("contenteditable", "true");
       el.setAttribute("spellcheck", "false");
@@ -1689,7 +2390,7 @@ kbd{
     let work;
     try { work = await getWork(doc); }
     catch (e) { toast("התמונה לא זמינה יותר — העלו אותה שוב", { icon: "⚠️" }); return; }
-    ip.doc = doc; ip.work = work; ip.open = true;
+    ip.doc = doc; ip.work = work; ip.open = true; ip.index = null;
     $("#ipName").textContent = doc.name;
     let url = urls.get(doc.id);
     if (!url) {
@@ -1702,6 +2403,21 @@ kbd{
     $("#inplace").hidden = false;
     ipFit();
     setTimeout(ipFit, 80);
+    // match every line to the font/size/colour it actually has in the picture
+    analyzeLines(doc, work, ln => {
+      if (!ip.open || ip.doc !== doc) return;
+      const el = $('.iline[data-i="' + doc.lines.indexOf(ln) + '"]', $("#ipLayer"));
+      if (el) { ipPlace(el, ln); }
+    }).then(() => { if (ip.doc === doc) { syncIpMatch(); save(); } });
+  }
+  function syncIpMatch(ln) {
+    const el = $("#ipMatch");
+    if (!el) return;
+    const line = ln || (ip.doc && ip.index != null ? ip.doc.lines[ip.index] : null);
+    const txt = line ? detectedFontLabel(line) : "";
+    if (txt) { el.innerHTML = "זוהה בתמונה: <b>" + esc(txt) + "</b>"; return; }
+    const ready = ip.doc && ip.doc.lines && ip.doc.lines.filter(l => l.ty).length;
+    el.textContent = ready ? "" : "מזהה גופן וצבע…";
   }
   function closeInPlace() {
     if (!ip.open) return;
@@ -1710,17 +2426,22 @@ kbd{
       doc.text = doc.lines.map(l => l.t).filter(t => t.trim()).join("\n");
       doc.rtl = isRtl(doc.text);
     }
-    ip.open = false; ip.doc = null; ip.work = null;
+    ip.open = false; ip.doc = null; ip.work = null; ip.index = null;
     $("#inplace").hidden = true;
     save(); render();
   }
   function syncIpControls() {
     const s = state.inplace;
+    // a stored value from an older version may no longer be an option
+    const hasOpt = (sel, v) => Array.prototype.some.call($(sel).options, o => o.value === v);
+    if (!hasOpt("#ipFont", s.font)) s.font = "auto";
+    if (!hasOpt("#ipWeight", String(s.weight))) s.weight = "auto";
     $("#ipFont").value = s.font;
-    $("#ipWeight").value = s.weight;
+    $("#ipWeight").value = String(s.weight);
     $("#ipColor").value = s.color;
     $("#ipAlign").value = s.align;
     $("#ipBoxes").checked = !!s.boxes;
+    syncIpMatch();
   }
   function refreshIpStyles() {
     if (!ip.doc) return;
@@ -1753,18 +2474,21 @@ kbd{
       if (!text) return;
       const rtl = (ln.dir || "rtl") === "rtl";
       const align = s.align === "auto" ? (rtl ? "right" : "left") : s.align;
-      const base = Math.max(7, ln.h * 0.8 * s.size);
-      ctx.font = s.weight + " " + base + "px " + s.font;
-      let size = base;
+      // same family, weight, size, ink colour and ink box as the original line
+      const t = ipType(ln);
+      const box = t.box;
+      ctx.font = t.fw + " " + t.fs + "px " + t.ff;
+      let size = t.fs;
       const measured = ctx.measureText(text).width;
-      if (measured > ln.w && measured > 0) size = Math.max(base * 0.55, base * (ln.w / measured));
-      if (size !== base) ctx.font = s.weight + " " + size + "px " + s.font;
-      ctx.fillStyle = s.color === "auto" ? (ln.color || "#111111") : s.color;
-      ctx.textBaseline = "middle";
+      if (measured > box.w && measured > 0) size = Math.max(t.fs * 0.4, t.fs * (box.w / measured));
+      if (size !== t.fs) ctx.font = t.fw + " " + size + "px " + t.ff;
+      ctx.fillStyle = t.ink;
+      ctx.textBaseline = "alphabetic";
       ctx.textAlign = align;
       ctx.direction = rtl ? "rtl" : "ltr";
-      const x = align === "right" ? ln.x + ln.w : align === "center" ? ln.x + ln.w / 2 : ln.x;
-      ctx.fillText(text, x, ln.y + ln.h * 0.56);
+      const descent = ln.ty ? ln.ty.descent * size : 0;
+      const x = align === "right" ? box.x + box.w : align === "center" ? box.x + box.w / 2 : box.x;
+      ctx.fillText(text, x, box.y + box.h - descent);
     });
     out.toBlob(blob => {
       if (!blob) { toast("ייצוא התמונה נכשל", { icon: "⚠️" }); return; }
@@ -1864,6 +2588,7 @@ kbd{
       toast("שפת התמלול: " + langLabel(state.lang), { icon: "🌐" });
     });
     $("#prepChk").addEventListener("change", e => { state.preprocess = e.target.checked; save(); });
+    $("#haChk").addEventListener("change", e => { state.hiAccuracy = e.target.checked; save(); });
 
     $("#btnTheme").onclick = () => { state.theme = state.theme === "dark" ? "light" : "dark"; applyTheme(); save(); };
     $("#btnHelp").onclick = () => { $("#help").hidden = false; };
@@ -2003,7 +2728,15 @@ kbd{
       const el = e.target.closest && e.target.closest(".iline");
       if (!el || !ip.doc) return;
       const idx = Number(el.dataset.i);
-      applyPatchTo(el, ip.doc.lines[idx], idx, true);
+      const ln = ip.doc.lines[idx];
+      ip.index = idx;
+      applyPatchTo(el, ln, idx, true);
+      // a line opened before the match finished gets its real font now
+      if (ln && ln.ty === undefined) {
+        analyzeLine(ip.work, ln).then(() => { if (ip.open) { ipPlace(el, ln); syncIpMatch(ln); } });
+      } else {
+        syncIpMatch(ln);
+      }
     });
     ipLayer.addEventListener("focusout", e => {
       const el = e.target.closest && e.target.closest(".iline");
@@ -2061,9 +2794,11 @@ kbd{
   applyFont();
   $("#langSel").value = state.lang;
   $("#prepChk").checked = state.preprocess;
+  $("#haChk").checked = state.hiAccuracy !== false;
   bind();
   render();
   if (state.docs.length) setEngine("המנוע ייטען בתמלול הבא", "");
+
 })();
 </script>
 </body>
